@@ -1,0 +1,390 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .script-editor {
+        height: 300px;
+        font-family: monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        resize: vertical;
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .script-item {
+        transition: all 0.3s ease;
+    }
+    
+    .script-item:hover {
+        transform: translateY(-2px);
+    }
+    
+    .script-actions {
+        visibility: hidden;
+        opacity: 0;
+        transition: all 0.3s ease;
+    }
+    
+    .script-item:hover .script-actions {
+        visibility: visible;
+        opacity: 1;
+    }
+    
+    .script-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    
+    .execution-badge {
+        position: absolute;
+        top: 40px;
+        right: 10px;
+    }
+    
+    .execute-btn.running {
+        position: relative;
+        pointer-events: none;
+    }
+    
+    .execute-btn.running:after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: inherit;
+        background-color: rgba(0, 0, 0, 0.5);
+        animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 0.5; }
+        50% { opacity: 0.8; }
+        100% { opacity: 0.5; }
+    }
+
+    .user-selection {
+        max-height: 200px;
+        overflow-y: auto;
+        background-color: rgba(25, 25, 25, 0.7);
+    }
+
+    /* CodeMirror custom stuff since normal it looks weird */
+    .CodeMirror {
+        height: 300px;
+        border-radius: 4px;
+        font-family: 'Consolas', monospace;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="glass p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="welcome-text">Global Scripts</h2>
+                    <span class="text-light">Create scripts to run on multiple users</span>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="glass p-3">
+                            <h4 class="mb-3 text-info">Create New Global Script</h4>
+                            <form action="{{ url_for('script.add_global_script') }}" method="post">
+                                <div class="mb-3">
+                                    <label for="scriptName" class="form-label">Script Name</label>
+                                    <input type="text" class="form-control bg-dark text-light" id="scriptName" name="name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="scriptContent" class="form-label">PowerShell Script</label>
+                                    <textarea class="form-control script-editor" id="scriptContent" name="content" rows="10"></textarea>
+                                </div>
+                                <div class="d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-1"></i> Save Global Script
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Global Scripts -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="glass p-3">
+                            <h4 class="mb-3 text-info">Global Scripts Library</h4>
+                            <div class="row">
+                                {% if global_scripts %}
+                                    {% for script in global_scripts %}
+                                        <div class="col-md-6 mb-3">
+                                            <div class="glass p-3 script-item position-relative" id="script-item-{{ script.id }}">
+                                                <span class="script-badge badge bg-warning">Global</span>
+                                                <span class="execution-badge badge {% if script.executed %}bg-success{% else %}bg-warning{% endif %}" id="execution-badge-{{ script.id }}">
+                                                    {% if script.executed %}Executed{% else %}Pending{% endif %}
+                                                </span>
+                                                <h5>{{ script.name }}</h5>
+                                                <div class="mb-3">
+                                                    <pre class="bg-dark p-2 rounded text-light" style="max-height: 150px; overflow-y: auto;">{{ script.content }}</pre>
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <small class="text-muted">Created: {{ script.created_at }}</small>
+                                                    <div class="script-actions">
+                                                        <button class="btn btn-sm btn-info" onclick="editScript('{{ script.id }}', '{{ script.name }}', `{{ script.content }}`)">
+                                                            <i class="fas fa-edit"></i> Edit
+                                                        </button>
+                                                        <button class="btn btn-sm btn-success" onclick="showUserSelectionModal('{{ script.id }}')">
+                                                            <i class="fas fa-play"></i> Execute
+                                                        </button>
+                                                        <form action="{{ url_for('script.delete_script', script_id=script.id) }}" method="post" class="d-inline">
+                                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                                <i class="fas fa-trash"></i> Delete
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="col-12">
+                                        <div class="alert alert-info">
+                                            No global scripts created yet. Create your first script above.
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script Edit -->
+<div class="modal fade" id="editScriptModal" tabindex="-1" aria-labelledby="editScriptModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editScriptModalLabel">Edit Global Script</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('script.update_script') }}" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editScriptName" class="form-label">Script Name</label>
+                        <input type="text" class="form-control bg-dark text-light" id="editScriptName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editScriptContent" class="form-label">PowerShell Script</label>
+                        <textarea class="form-control script-editor" id="editScriptContent" name="content" rows="15"></textarea>
+                    </div>
+                    <input type="hidden" id="editScriptId" name="script_id">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- User Selection -->
+<div class="modal fade" id="userSelectionModal" tabindex="-1" aria-labelledby="userSelectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userSelectionModalLabel">Select Users for Script Execution</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="executeScriptForm" action="{{ url_for('script.execute_global_script') }}" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="selectAllUsers" onchange="toggleAllUsers()">
+                            <label class="form-check-label" for="selectAllUsers">
+                                <strong>Select All Users</strong>
+                            </label>
+                        </div>
+                        <div class="user-selection p-2 rounded">
+                            {% if users %}
+                                {% for user in users %}
+                                    <div class="form-check mb-1">
+                                        <input class="form-check-input user-checkbox" type="checkbox" name="selected_users" value="{{ user.id }}" id="user-{{ user.id }}">
+                                        <label class="form-check-label" for="user-{{ user.id }}">
+                                            {{ user.pcname }} ({{ user.ip_address }}) 
+                                            <span class="activity-indicator {% if user.is_active %}active{% else %}inactive{% endif %}"></span>
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-warning">No users available</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <input type="hidden" id="scriptIdForExecution" name="script_id">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Execute Script</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- WebSocket Connection -->
+{% include 'components/websocket_connection.html' %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let scriptEditor;
+    let editEditor;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // code mirror
+        const scriptContent = document.getElementById('scriptContent');
+        if (scriptContent) {
+            scriptEditor = CodeMirror.fromTextArea(scriptContent, {
+                mode: 'powershell',
+                theme: 'dracula',
+                lineNumbers: true,
+                indentUnit: 4,
+                autoCloseBrackets: true,
+                matchBrackets: true,
+                styleActiveLine: true,
+                extraKeys: {"Ctrl-Space": "autocomplete"},
+                tabSize: 4,
+                indentWithTabs: true
+            });
+        }
+        
+        // code mirror for edit modal
+        const editScriptContent = document.getElementById('editScriptContent');
+        if (editScriptContent) {
+            editEditor = CodeMirror.fromTextArea(editScriptContent, {
+                mode: 'powershell',
+                theme: 'dracula',
+                lineNumbers: true,
+                indentUnit: 4,
+                autoCloseBrackets: true,
+                matchBrackets: true,
+                styleActiveLine: true,
+                extraKeys: {"Ctrl-Space": "autocomplete"},
+                tabSize: 4,
+                indentWithTabs: true
+            });
+            
+            // update the CodeMirror instance when the edit modal is shown
+            document.getElementById('editScriptModal').addEventListener('shown.bs.modal', function() {
+                editEditor.refresh();
+            });
+        }
+        
+        // add form submission handlers
+        const newScriptForm = document.querySelector('form[action="{{ url_for("script.add_global_script") }}"]');
+        if (newScriptForm && scriptEditor) {
+            newScriptForm.addEventListener('submit', function(e) {
+                // update the hidden textarea with CodeMirror content before submitting
+                scriptEditor.save();
+            });
+        }
+        
+        const editScriptForm = document.querySelector('form[action="{{ url_for("script.update_script") }}"]');
+        if (editScriptForm && editEditor) {
+            editScriptForm.addEventListener('submit', function(e) {
+                // update the hidden textarea with CodeMirror content before submitting
+                editEditor.save();
+            });
+        }
+        
+        // remove required attribute from hidden textareas
+        if (scriptContent) scriptContent.removeAttribute('required');
+        if (editScriptContent) editScriptContent.removeAttribute('required');
+        
+        const scriptIds = [];
+        document.querySelectorAll('[id^="script-item-"]').forEach(item => {
+            const scriptId = item.id.split('-').pop();
+            scriptIds.push(scriptId);
+        });
+        
+        if (scriptIds.length > 0) {
+            pollScriptExecutionStatus(scriptIds);
+        }
+    });
+
+    function editScript(id, name, content) {
+        document.getElementById('editScriptId').value = id;
+        document.getElementById('editScriptName').value = name;
+        
+        // update the CodeMirror instance with the new content
+        if (editEditor) {
+            editEditor.setValue(content);
+            setTimeout(() => editEditor.refresh(), 10); // Refresh after a short delay
+        } else {
+            document.getElementById('editScriptContent').value = content;
+        }
+        
+        // show the modal
+        const modal = new bootstrap.Modal(document.getElementById('editScriptModal'));
+        modal.show();
+    }
+    
+    function showUserSelectionModal(scriptId) {
+        document.getElementById('scriptIdForExecution').value = scriptId;
+        
+        // show the modal
+        const modal = new bootstrap.Modal(document.getElementById('userSelectionModal'));
+        modal.show();
+    }
+    
+    function toggleAllUsers() {
+        const selectAllCheckbox = document.getElementById('selectAllUsers');
+        const userCheckboxes = document.querySelectorAll('.user-checkbox');
+        
+        userCheckboxes.forEach(checkbox => {
+            checkbox.checked = selectAllCheckbox.checked;
+        });
+    }
+    
+    function pollScriptExecutionStatus(scriptIds) {
+        // check every 5 seconds
+        setInterval(() => {
+            scriptIds.forEach(scriptId => {
+                fetch(`/script/check-execution/${scriptId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            const badge = document.getElementById('execution-badge-' + scriptId);
+                            
+                            if (badge) {
+                                if (data.executed) {
+                                    badge.className = 'execution-badge badge bg-success';
+                                    badge.textContent = 'Executed';
+                                } else {
+                                    if (badge.textContent !== 'Queued') {
+                                        badge.className = 'execution-badge badge bg-warning';
+                                        badge.textContent = 'Pending';
+                                    }
+                                }
+                            }
+                        }
+                    })
+                    .catch(error => console.error('Error checking script execution:', error));
+            });
+        }, 5000);
+    }
+</script>
+{% endblock %}

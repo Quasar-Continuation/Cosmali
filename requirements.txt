@@ -1,0 +1,7 @@
+aiosqlite
+Faker
+psutil
+pyOpenSSL
+quart
+quart_rate_limiter
+hypercorn

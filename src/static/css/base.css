@@ -1,0 +1,221 @@
+:root {
+    --glass-bg: rgba(15, 23, 42, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --sidebar-width: 250px;
+    --content-padding: 15px;
+    --glow-purple: rgba(161, 127, 224, 0.7);
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+    background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+    color: #fff;
+    overflow-x: hidden;
+    padding-left: var(--sidebar-width);
+}
+
+/* Space Background */
+.space-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+}
+
+/* Star field (twinkling stars) */
+.star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    opacity: 0.5;
+    animation: twinkle 4s infinite ease-in-out;
+    pointer-events: none;
+}
+
+@keyframes twinkle {
+    0%, 100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.3);
+    }
+}
+
+/* Shooting star */
+.shooting-star {
+    position: absolute;
+    width: 80px;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(255,255,255,0), white 70%);
+    border-radius: 50%;
+    filter: drop-shadow(0 0 6px white);
+    transform-origin: left;
+    pointer-events: none;
+    z-index: 10;
+    animation: shoot linear;
+}
+
+.shooting-star::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, white, rgba(255,255,255,0));
+}
+
+@keyframes shoot {
+    0% {
+        transform: rotate(-30deg) translateX(0);
+        opacity: 1;
+    }
+    70% {
+        opacity: 1;
+    }
+    100% {
+        transform: rotate(-30deg) translateX(calc(-1 * var(--distance)));
+        opacity: 0;
+    }
+}
+
+/* Glass Stuff */
+.glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+}
+
+.sidebar {
+    width: var(--sidebar-width);
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    padding: 20px;
+    transition: all 0.3s;
+    z-index: 1030;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+}
+
+.main-content {
+    flex: 1;
+    margin-left: 0;
+    margin-top: 0;
+    padding: var(--content-padding);
+    padding-top: 15px;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.sidebar-header {
+    margin-bottom: 25px;
+    padding-left: 10px;
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 15px;
+}
+
+.sidebar-header h3 {
+    color: #a17fe0;
+    text-shadow: 0 0 10px var(--glow-purple), 
+                0 0 20px rgba(161, 127, 224, 0.5),
+                0 0 30px rgba(161, 127, 224, 0.3);
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+.nav-link {
+    color: rgba(255, 255, 255, 0.8);
+    padding: 12px 20px;
+    margin: 6px 0;
+    border-radius: 8px;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+}
+
+.nav-link:hover, .nav-link.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.nav-link i {
+    width: 20px;
+    margin-right: 10px;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    border-top: 1px solid var(--glass-border);
+    padding-top: 15px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-align: center;
+}
+
+/* Purple glowing welcome text */
+.welcome-text {
+    color: #a17fe0;
+    text-shadow: 0 0 10px var(--glow-purple), 
+                0 0 20px rgba(161, 127, 224, 0.5),
+                0 0 30px rgba(161, 127, 224, 0.3);
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+/* Add class for disabling animations (to be finished later for settings if I ever get to that) */
+.no-animations * {
+    transition: none !important;
+    animation: none !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    :root {
+        --sidebar-width: 60px;
+        --content-padding: 10px;
+    }
+    
+    .sidebar {
+        width: var(--sidebar-width);
+        padding: 15px 5px;
+    }
+    
+    .sidebar-header h3 {
+        display: none;
+    }
+    
+    .nav-link span {
+        display: none;
+    }
+    
+    .nav-link i {
+        font-size: 1.2rem;
+        margin: 0 auto;
+    }
+    
+    .nav-link {
+        padding: 12px;
+        display: flex;
+        justify-content: center;
+    }
+    
+    .sidebar-footer {
+        display: none;
+    }
+}

@@ -1,0 +1,110 @@
+<div class="row stats-row">
+    <!-- Server Uptime Card -->
+    <div class="col-md-3 mb-3">
+        <div class="glass p-3 stats-card">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="fas fa-clock fa-2x text-info"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-1">Server Uptime</h6>
+                    <h4 id="uptime" class="mb-0">{{ system_stats.uptime if system_stats else 'N/A' }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Total Users Card -->
+    <div class="col-md-3 mb-3">
+        <div class="glass p-3 stats-card">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="fas fa-users fa-2x text-success"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-1">Total Users</h6>
+                    <h4 class="mb-0">{{ total_users if total_users is defined else 'N/A' }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- CPU Usage Card -->
+    <div class="col-md-3 mb-3">
+        <div class="glass p-3 stats-card">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="fas fa-microchip fa-2x text-warning"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-1">CPU Usage</h6>
+                    <h4 id="cpuUsage" class="mb-0">{{ system_stats.cpu_percent if system_stats else 'N/A' }}{{ '%' if system_stats else '' }}</h4>
+                </div>
+            </div>
+            <div class="progress mt-2" style="height: 5px;">
+                <div id="cpuProgress" class="progress-bar bg-warning" role="progressbar" style="width: {{ system_stats.cpu_percent if system_stats else 0 }}%"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Memory Usage Card -->
+    <div class="col-md-3 mb-3">
+        <div class="glass p-3 stats-card">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="fas fa-memory fa-2x text-danger"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-1">Memory Usage</h6>
+                    <h4 id="memoryUsage" class="mb-0">{{ system_stats.memory_percent if system_stats else 'N/A' }}{{ '%' if system_stats else '' }}</h4>
+                </div>
+            </div>
+            <div class="progress mt-2" style="height: 5px;">
+                <div id="memoryProgress" class="progress-bar bg-danger" role="progressbar" style="width: {{ system_stats.memory_percent if system_stats else 0 }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    {% if include_disk and system_stats %}
+    <!-- Disk Usage Card -->
+    <div class="col-md-3 mb-3">
+        <div class="glass p-3 stats-card">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="fas fa-hdd fa-2x text-primary"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-1">Disk Usage</h6>
+                    <h4 id="diskUsage" class="mb-0">{{ system_stats.disk_percent }}%</h4>
+                </div>
+            </div>
+            <div class="progress mt-2" style="height: 5px;">
+                <div id="diskProgress" class="progress-bar bg-primary" role="progressbar" style="width: {{ system_stats.disk_percent }}%"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if include_active_users and users is defined %}
+    <!-- Active Users Card -->
+    <div class="col-md-3 mb-3">
+        <div class="glass p-3 stats-card">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="fas fa-signal fa-2x text-success"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-1">Active Users</h6>
+                    <h4 id="activeUsers" class="mb-0">
+                        {{ users|selectattr('is_active', 'eq', 1)|list|length }} / {{ users|length }}
+                    </h4>
+                </div>
+            </div>
+            <div class="progress mt-2" style="height: 5px;">
+                {% set active_percentage = (users|selectattr('is_active', 'eq', 1)|list|length / users|length) * 100 if users|length > 0 else 0 %}
+                <div class="progress-bar bg-success" role="progressbar" style="width: {{ active_percentage }}%"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>

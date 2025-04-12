@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+<style>
+    #map {
+        flex: 1;
+        min-height: 500px;
+        border-radius: 10px;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        position: relative;
+    }
+    
+    .map-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 500px;
+        height: calc(100vh - 250px);
+        position: relative;
+    }
+    
+    .leaflet-pane,
+    .leaflet-tile,
+    .leaflet-marker-icon,
+    .leaflet-marker-shadow,
+    .leaflet-tile-container,
+    .leaflet-map-pane svg,
+    .leaflet-map-pane canvas,
+    .leaflet-zoom-box,
+    .leaflet-image-layer,
+    .leaflet-layer {
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 1;
+    }
+    
+    .leaflet-control {
+        z-index: 800 !important;
+    }
+
+    .custom-circle-marker {
+        border-radius: 50%;
+        opacity: 0.7;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+    
+    .leaflet-bar a, 
+    .leaflet-control-zoom-in, 
+    .leaflet-control-zoom-out {
+        background-color: #333 !important;
+        color: #fff !important;
+        border: 1px solid #666 !important;
+    }
+    
+    .leaflet-bar a:hover {
+        background-color: #444 !important;
+    }
+    
+    .info.legend {
+        background-color: rgba(30, 30, 30, 0.8);
+        padding: 10px;
+        border-radius: 5px;
+        color: #fff;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .info.legend h4 {
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        color: #eee;
+    }
+    
+    .info.legend i {
+        width: 15px;
+        height: 15px;
+        display: inline-block;
+        margin-right: 8px;
+        border-radius: 50%;
+        vertical-align: middle;
+    }
+    
+    .info.legend span {
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- New marker cluster plugin -->
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const mapData = JSON.parse(document.getElementById('mapData').textContent);
+    const map = L.map('map').setView([0, 0], 2);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+        attributionControl: false, subdomains: 'abcd', maxZoom: 19
+    }).addTo(map);
+
+    const markers = L.markerClusterGroup({ showCoverageOnHover: false });
+    mapData.forEach(user => {
+        if (!user.latitude || !user.longitude) return;
+        const marker = L.marker([user.latitude, user.longitude]);
+        marker.bindPopup(`<b>${user.pcname || 'User'}</b>`);
+        markers.addLayer(marker);
+    });
+    map.addLayer(markers);
+
+    if (markers.getBounds().isValid()) {
+        map.fitBounds(markers.getBounds(), { padding: [50, 50] });
+    }
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid pt-2 d-flex flex-column" style="flex: 1;">
+    <!-- Statistics Cards -->
+    {% with include_disk=False %}
+        {% include 'components/stats_cards.html' %}
+    {% endwith %}
+
+    <div class="row flex-grow-1">
+        <div class="col-12">
+            <div class="glass p-4 d-flex flex-column map-container">
+                <h2 class="mb-4">Client Map</h2>
+                <div id="map">
+                    <!-- map rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script id="mapData" type="application/json">{{ map_data|tojson }}</script>
+
+<!-- WebSocket Connection -->
+{% include 'components/websocket_connection.html' %}
+{% endblock %}

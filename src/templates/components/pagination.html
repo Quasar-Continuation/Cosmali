@@ -1,0 +1,47 @@
+<div class="pagination-container mt-auto">
+    <nav aria-label="Page navigation">
+        <ul class="pagination">
+            <!-- First Page Button -->
+            <li class="page-item {% if pagination.page == 1 %}disabled{% endif %}">
+                <a class="page-link" href="{{ request.path }}?page=1&sort={{ current_sort }}&order={{ current_order }}{% if search_term %}&search={{ search_term }}{% endif %}" aria-label="First">
+                    <i class="fas fa-angle-double-left"></i>
+                </a>
+            </li>
+            
+            <!-- Previous Button -->
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ request.path }}?page={{ pagination.prev_page }}&sort={{ current_sort }}&order={{ current_order }}{% if search_term %}&search={{ search_term }}{% endif %}" aria-label="Previous">
+                    <i class="fas fa-angle-left"></i>
+                </a>
+            </li>
+            
+            <!-- Page Numbers -->
+            {% set start_page = [pagination.page - 2, 1] | max %}
+            {% set end_page = [start_page + 4, pagination.pages] | min %}
+            {% set start_page = [end_page - 4, 1] | max %}
+            
+            {% for page_num in range(start_page, end_page + 1) %}
+                <li class="page-item {% if page_num == pagination.page %}pagination-active-button{% endif %}">
+                    <a class="page-link" href="{{ request.path }}?page={{ page_num }}&sort={{ current_sort }}&order={{ current_order }}{% if search_term %}&search={{ search_term }}{% endif %}">{{ page_num }}</a>
+                </li>
+            {% endfor %}
+            
+            <!-- Next Button -->
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ request.path }}?page={{ pagination.next_page }}&sort={{ current_sort }}&order={{ current_order }}{% if search_term %}&search={{ search_term }}{% endif %}" aria-label="Next">
+                    <i class="fas fa-angle-right"></i>
+                </a>
+            </li>
+            
+            <!-- Last Page Button -->
+            <li class="page-item {% if pagination.page == pagination.pages %}disabled{% endif %}">
+                <a class="page-link" href="{{ request.path }}?page={{ pagination.pages }}&sort={{ current_sort }}&order={{ current_order }}{% if search_term %}&search={{ search_term }}{% endif %}" aria-label="Last">
+                    <i class="fas fa-angle-double-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <div class="page-info">
+        Showing <span class="fw-bold text-info">{{ ((pagination.page - 1) * pagination.per_page) + 1 }}-{{ [pagination.page * pagination.per_page, pagination.total] | min }}</span> of <span class="fw-bold text-info">{{ pagination.total }}</span> entries
+    </div>
+</div>

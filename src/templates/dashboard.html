@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+    // handle user deletion in the UI
+    function deleteUser(userId, pcname) {
+        fetch(`/delete_user/${userId}`, {
+            method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const userRow = document.getElementById(`user-row-${userId}`);
+                if (userRow) {
+                    userRow.remove();
+                }
+                
+                const alertBox = document.createElement('div');
+                alertBox.className = 'alert alert-success alert-dismissible fade show';
+                alertBox.innerHTML = `
+                    <strong>Success!</strong> ${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                document.querySelector('.table-container').before(alertBox);
+                
+                setTimeout(() => {
+                    alertBox.remove();
+                }, 3000);
+            } else {
+                const alertBox = document.createElement('div');
+                alertBox.className = 'alert alert-danger alert-dismissible fade show';
+                alertBox.innerHTML = `
+                    <strong>Error!</strong> ${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                document.querySelector('.table-container').before(alertBox);
+                
+                setTimeout(() => {
+                    alertBox.remove();
+                }, 3000);
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting user:', error);
+            const alertBox = document.createElement('div');
+            alertBox.className = 'alert alert-danger alert-dismissible fade show';
+            alertBox.innerHTML = `
+                <strong>Error!</strong> An error occurred while deleting the user
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            document.querySelector('.table-container').before(alertBox);
+            
+            setTimeout(() => {
+                alertBox.remove();
+            }, 3000);
+        });
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid d-flex flex-column p-0 pt-2">
+    <!-- Statistics Cards -->
+    {% with include_disk=True, include_active_users=True %}
+        {% include 'components/stats_cards.html' %}
+    {% endwith %}
+
+    <!-- Users Table Card -->
+    <div class="row flex-grow-1">
+        <div class="col-12">
+            <div class="glass p-4 d-flex flex-column h-100">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="welcome-text">Users</h2>
+                    <form id="userSearchForm" class="d-flex search-container">
+                        <input type="text" id="userSearchInput" name="search" class="form-control form-control-sm search-input" placeholder="Search users..." value="{{ search_term or '' }}">
+                        <button type="submit" class="btn btn-sm search-btn">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </form>
+                </div>
+                <div class="table-responsive flex-grow-1 table-container">
+                    <table class="table table-borderless">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="sortTable('id')">
+                                    ID
+                                    {% if current_sort == 'id' %}
+                                        <span class="sort-icon">
+                                            {% if current_order == 'asc' %}↑{% else %}↓{% endif %}
+                                        </span>
+                                    {% endif %}
+                                </th>
+                                <th class="sortable" onclick="sortTable('pcname')">
+                                    PC Name
+                                    {% if current_sort == 'pcname' %}
+                                        <span class="sort-icon">
+                                            {% if current_order == 'asc' %}↑{% else %}↓{% endif %}
+                                        </span>
+                                    {% endif %}
+                                </th>
+                                <th class="sortable" onclick="sortTable('ip_address')">
+                                    IP Address
+                                    {% if current_sort == 'ip_address' %}
+                                        <span class="sort-icon">
+                                            {% if current_order == 'asc' %}↑{% else %}↓{% endif %}
+                                        </span>
+                                    {% endif %}
+                                </th>
+                                <th class="sortable" onclick="sortTable('country')">
+                                    Country
+                                    {% if current_sort == 'country' %}
+                                        <span class="sort-icon">
+                                            {% if current_order == 'asc' %}↑{% else %}↓{% endif %}
+                                        </span>
+                                    {% endif %}
+                                </th>
+                                <th class="sortable" onclick="sortTable('is_active')">
+                                    Activity
+                                    {% if current_sort == 'is_active' %}
+                                        <span class="sort-icon">
+                                            {% if current_order == 'asc' %}↑{% else %}↓{% endif %}
+                                        </span>
+                                    {% endif %}
+                                </th>
+                                <th class="sortable" onclick="sortTable('last_ping')">
+                                    Last Ping
+                                    {% if current_sort == 'last_ping' %}
+                                        <span class="sort-icon">
+                                            {% if current_order == 'asc' %}↑{% else %}↓{% endif %}
+                                        </span>
+                                    {% endif %}
+                                </th>
+                                <th class="sortable" onclick="sortTable('first_ping')">
+                                    First Seen
+                                    {% if current_sort == 'first_ping' %}
+                                        <span class="sort-icon">
+                                            {% if current_order == 'asc' %}↑{% else %}↓{% endif %}
+                                        </span>
+                                    {% endif %}
+                                </th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr id="user-row-{{ user.id }}">
+                                <td><span class="badge bg-dark">{{ user.id }}</span></td>
+                                <td><span class="text-secondary">{{ user.pcname }}</span></td>
+                                <td><span class="text-info">{{ user.ip_address }}</span></td>
+                                <td class="country-name">
+                                    <span class="text-secondary">{{ user.country }}</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="activity-indicator {% if user.is_active %}active{% else %}inactive{% endif %}"></span>
+                                        <span class="{% if user.is_active %}text-success{% else %}text-danger{% endif %}">
+                                            {{ "Active" if user.is_active else "Inactive" }}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td title="{{ user.last_ping }}">
+                                    <span class="text-warning">{{ user.last_ping_formatted }}</span>
+                                </td>
+                                <td title="{{ user.first_ping }}">
+                                    <span class="text-secondary">{{ user.first_ping_formatted }}</span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('script.user_scripts', user_id=user.id) }}" class="btn-action edit" title="Edit User Scripts">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button class="btn-action delete" title="Delete User" onclick="deleteUser({{ user.id }}, '{{ user.pcname }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% include 'components/pagination.html' %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- WebSocket Connection -->
+{% include 'components/websocket_connection.html' %}
+{% endblock %}

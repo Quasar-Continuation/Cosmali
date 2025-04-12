@@ -1,0 +1,89 @@
+<script>
+    // status indicator
+    const statusDiv = document.createElement('div');
+    statusDiv.style.position = 'fixed';
+    statusDiv.style.bottom = '10px';
+    statusDiv.style.right = '10px';
+    statusDiv.style.padding = '5px 10px';
+    statusDiv.style.backgroundColor = '#333';
+    statusDiv.style.color = '#fff';
+    statusDiv.style.borderRadius = '5px';
+    statusDiv.style.zIndex = '1000';
+    statusDiv.style.fontSize = '0.75rem';
+    statusDiv.style.opacity = '0.8';
+    statusDiv.textContent = 'WebSocket: Connecting...';
+    document.body.appendChild(statusDiv);
+
+    // web socket url
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    // make connection
+    let socket = new WebSocket(wsUrl);
+
+    // opened
+    socket.addEventListener('open', (event) => {
+        console.log('WebSocket Connected!');
+        statusDiv.textContent = 'WebSocket: Connected';
+        statusDiv.style.backgroundColor = '#28a745';
+    });
+
+    // listen for messages
+    socket.addEventListener('message', (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            console.log('Message from server:', data);
+            
+            if (data.type === 'system_stats') {
+                const stats = data.data;
+                
+                // Update the UI elements with the new data
+                if (document.getElementById("uptime")) {
+                    document.getElementById("uptime").textContent = stats.uptime;
+                }
+                
+                if (document.getElementById("cpuUsage")) {
+                    document.getElementById("cpuUsage").textContent = stats.cpu_percent + "%";
+                    document.getElementById("cpuProgress").style.width = stats.cpu_percent + "%";
+                }
+                
+                if (document.getElementById("memoryUsage")) {
+                    document.getElementById("memoryUsage").textContent = stats.memory_percent + "%";
+                    document.getElementById("memoryProgress").style.width = stats.memory_percent + "%";
+                }
+                
+                if (document.getElementById("diskUsage")) {
+                    document.getElementById("diskUsage").textContent = stats.disk_percent + "%";
+                    document.getElementById("diskProgress").style.width = stats.disk_percent + "%";
+                }
+                
+                if (typeof handleWebSocketMessage === 'function') {
+                    handleWebSocketMessage(data);
+                }
+            }
+        } catch (e) {
+            console.error('Error parsing message:', e);
+        }
+    });
+
+    // Connection closed
+    socket.addEventListener('close', (event) => {
+        console.log('WebSocket Disconnected');
+        statusDiv.textContent = 'WebSocket: Disconnected';
+        statusDiv.style.backgroundColor = '#dc3545';
+        
+        setTimeout(() => {
+            statusDiv.textContent = 'WebSocket: Reconnecting...';
+            statusDiv.style.backgroundColor = '#ffc107';
+            
+            socket = new WebSocket(wsUrl);
+        }, 2000);
+    });
+
+    // Connection error
+    socket.addEventListener('error', (event) => {
+        console.error('WebSocket Error:', event);
+        statusDiv.textContent = 'WebSocket: Error';
+        statusDiv.style.backgroundColor = '#dc3545';
+    });
+</script>

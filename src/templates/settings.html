@@ -1,0 +1,90 @@
+<!-- templates/settings.html -->
+{% extends "base.html" %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="glass p-4">
+                <h2 class="mb-4">Settings</h2>
+                
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="nav flex-column nav-pills settings-tab-bar" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+                            <button class="nav-link active" id="v-pills-appearance-tab" data-bs-toggle="pill" data-bs-target="#v-pills-appearance" type="button" role="tab" aria-controls="v-pills-appearance" aria-selected="true">Appearance</button>
+                            <button class="nav-link" id="v-pills-notification-tab" data-bs-toggle="pill" data-bs-target="#v-pills-notification" type="button" role="tab" aria-controls="v-pills-notification" aria-selected="false">Notifications</button>
+                            <button class="nav-link" id="v-pills-security-tab" data-bs-toggle="pill" data-bs-target="#v-pills-security" type="button" role="tab" aria-controls="v-pills-security" aria-selected="false">Security</button>
+                        </div>
+                    </div>
+                    <div class="col-md-9">
+                        <div class="tab-content" id="v-pills-tabContent">
+                            <div class="tab-pane fade show active" id="v-pills-appearance" role="tabpanel" aria-labelledby="v-pills-appearance-tab">
+                                <div class="glass p-3">
+                                    <h4 class="mb-3">Appearance Settings</h4>
+                                    <form id="appearanceSettingsForm" class="settings-form">
+                                        <div class="mb-3">
+                                            <label class="form-label d-block">Theme</label>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="themeOptions" id="darkTheme" checked>
+                                                <label class="form-check-label" for="darkTheme">Dark</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="themeOptions" id="lightTheme">
+                                                <label class="form-check-label" for="lightTheme">Light</label>
+                                            </div>
+                                        </div>
+                                        <div class="form-check form-switch mb-3">
+                                            <input class="form-check-input" type="checkbox" id="animationsToggle" checked>
+                                            <label class="form-check-label" for="animationsToggle">Enable Animations</label>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="v-pills-notification" role="tabpanel" aria-labelledby="v-pills-notification-tab">
+                                <div class="glass p-3">
+                                    <h4 class="mb-3">Notification Settings</h4>
+                                    <form id="notificationSettingsForm" class="settings-form">
+                                        <div class="form-check form-switch mb-3">
+                                            <input class="form-check-input" type="checkbox" id="connectionAlerts" checked>
+                                            <label class="form-check-label" for="connectionAlerts">Connection Alerts</label>
+                                        </div>
+                                        <div class="form-check form-switch mb-3">
+                                            <input class="form-check-input" type="checkbox" id="scriptExecutionAlerts" checked>
+                                            <label class="form-check-label" for="scriptExecutionAlerts">Script Execution Alerts</label>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="v-pills-security" role="tabpanel" aria-labelledby="v-pills-security-tab">
+                                <div class="glass p-3">
+                                    <h4 class="mb-3">Security Settings</h4>
+                                    <form id="securitySettingsForm" class="settings-form">
+                                        <div class="form-check form-switch mb-3">
+                                            <input class="form-check-input" type="checkbox" id="twoFactorAuth">
+                                            <label class="form-check-label" for="twoFactorAuth">Two-Factor Authentication</label>
+                                        </div>
+                                        <div class="form-check form-switch mb-3">
+                                            <input class="form-check-input" type="checkbox" id="autoLogout">
+                                            <label class="form-check-label" for="autoLogout">Auto Logout After Inactivity</label>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- WebSocket Connection Component -->
+{% include 'components/websocket_connection.html' %}
+{% endblock %}
