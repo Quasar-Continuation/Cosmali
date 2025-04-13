@@ -3,7 +3,6 @@ import aiosqlite
 import json
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
-import pycountry
 
 from config import DATABASE
 from util.system.stats import get_system_stats
