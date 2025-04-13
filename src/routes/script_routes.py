@@ -86,7 +86,7 @@ async def update_script():
     form = await request.form
     script_id = sanitize_input(form.get("script_id"))
     name = sanitize_input(form.get("name"))
-    content = sanitize_input(form.get("content"))
+    content = form.get("content")
 
     async with aiosqlite.connect(DATABASE) as db:
         db.row_factory = aiosqlite.Row
@@ -230,7 +230,7 @@ async def add_global_script():
     """Add a new global script"""
     form = await request.form
     name = sanitize_input(form.get("name"))
-    content = sanitize_input(form.get("content"))
+    content = form.get("content")
 
     async with aiosqlite.connect(DATABASE) as db:
 
