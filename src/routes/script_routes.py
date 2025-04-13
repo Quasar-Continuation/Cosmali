@@ -1,11 +1,18 @@
 from quart import Blueprint, request, render_template, redirect, url_for, jsonify
 import aiosqlite
 import base64
+import html
 from config import DATABASE
 from util.blacklist.ip_blacklist import black_list_ip
 from util.rate_limit import api_rate_limit
 
 script_bp = Blueprint("script", __name__, url_prefix="/script")
+
+
+def sanitize_input(value):
+    if isinstance(value, str):
+        return html.escape(value)
+    return value
 
 
 @script_bp.route("/user/<int:user_id>")
@@ -46,9 +53,9 @@ async def user_scripts(user_id):
 async def add_script():
     """Add a new script for a user"""
     form = await request.form
-    name = form.get("name")
-    content = form.get("content")
-    user_id = form.get("user_id")
+    name = sanitize_input(form.get("name"))
+    content = sanitize_input(form.get("content"))
+    user_id = sanitize_input(form.get("user_id"))
 
     if not user_id:
         return "User ID is required", 400
@@ -77,9 +84,9 @@ async def add_script():
 async def update_script():
     """Update an existing script"""
     form = await request.form
-    script_id = form.get("script_id")
-    name = form.get("name")
-    content = form.get("content")
+    script_id = sanitize_input(form.get("script_id"))
+    name = sanitize_input(form.get("name"))
+    content = sanitize_input(form.get("content"))
 
     async with aiosqlite.connect(DATABASE) as db:
         db.row_factory = aiosqlite.Row
@@ -132,7 +139,7 @@ async def delete_script(script_id):
 @black_list_ip()
 async def execute_script(script_id):
     """Queue a script for execution by a client"""
-    user_id = request.args.get("user_id")  # only needed for global scripts
+    user_id = sanitize_input(request.args.get("user_id"))
 
     async with aiosqlite.connect(DATABASE) as db:
         db.row_factory = aiosqlite.Row
@@ -222,8 +229,8 @@ async def global_scripts():
 async def add_global_script():
     """Add a new global script"""
     form = await request.form
-    name = form.get("name")
-    content = form.get("content")
+    name = sanitize_input(form.get("name"))
+    content = sanitize_input(form.get("content"))
 
     async with aiosqlite.connect(DATABASE) as db:
 
@@ -244,8 +251,8 @@ async def add_global_script():
 async def execute_global_script():
     """Execute a global script on selected users"""
     form = await request.form
-    script_id = form.get("script_id")
-    selected_users = form.getlist("selected_users")
+    script_id = sanitize_input(form.get("script_id"))
+    selected_users = [sanitize_input(user) for user in form.getlist("selected_users")]
 
     if not script_id or not selected_users:
         return "Script ID and at least one user are required", 400

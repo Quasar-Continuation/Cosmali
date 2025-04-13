@@ -1,0 +1,429 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css" rel="stylesheet">
+<style>
+    .stats-container {
+        height: 100%;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 250px;
+        overflow: visible;
+    }
+    
+    .data-table {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+    }
+    
+    .metric-label {
+        font-size: 1rem;
+        color: #6c757d;
+        margin-bottom: 0;
+    }
+    
+    .stat-card {
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .main-stats-container {
+        height: calc(100vh - 50px);
+        overflow-y: auto;
+    }
+    
+    .bottom-row-container {
+        display: flex;
+    }
+    
+    .bottom-row-container .col-md-6 {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .bottom-row-container .glass {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    canvas {
+        max-height: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid d-flex flex-column p-0 pt-2 main-stats-container">
+    <!-- Key Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="glass p-4 stat-card">
+                <h3 class="mb-3">Key Metrics</h3>
+                <div class="row">
+                    <div class="col-md-3 text-center">
+                        <div class="mb-3">
+                            <span class="metric-value text-success">{{ total_users }}</span>
+                            <p class="metric-label">Total Clients</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="mb-3">
+                            <span class="metric-value text-info">{{ active_users }}</span>
+                            <p class="metric-label">Active Clients</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="mb-3">
+                            <span class="metric-value text-warning">{{ total_scripts }}</span>
+                            <p class="metric-label">Total Scripts</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="mb-3">
+                            <span class="metric-value text-danger">{{ script_execution[0].count }}</span>
+                            <p class="metric-label">Executed Scripts</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- User Statistics -->
+    <div class="row">
+        <!-- User Activity Chart -->
+        <div class="col-md-6 mb-4">
+            <div class="glass p-4 stat-card">
+                <h3 class="mb-3">User Activity</h3>
+                <div class="chart-container">
+                    <canvas id="userActivityChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Script Execution Status -->
+        <div class="col-md-6 mb-4">
+            <div class="glass p-4 stat-card">
+                <h3 class="mb-3">Script Status</h3>
+                <div class="chart-container">
+                    <canvas id="scriptStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row bottom-row-container">
+        <!-- Country Distribution -->
+        <div class="col-md-6 mb-4">
+            <div class="glass p-4 stat-card">
+                <h3 class="mb-3">Client Location Distribution</h3>
+                <div class="chart-container">
+                    <canvas id="countryDistributionChart"></canvas>
+                </div>
+                <div class="data-table mt-3">
+                    <table class="table table-borderless">
+                        <thead>
+                            <tr>
+                                <th>Country</th>
+                                <th>Clients</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for country in country_stats %}
+                            <tr>
+                                <td>{{ country.name }}</td>
+                                <td>{{ country.count }}</td>
+                                <td>{{ country.percentage }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- New User Registration -->
+        <div class="col-md-6 mb-4">
+            <div class="glass p-4 stat-card">
+                <h3 class="mb-3">New Client Registrations (Last 14 Days)</h3>
+                <div class="chart-container">
+                    <canvas id="registrationTrendChart"></canvas>
+                </div>
+                <div style="flex-grow: 1;"></div>
+                {% if country_stats|length == 0 %}
+                <div class="data-table mt-3" style="visibility: hidden;">
+                    <table class="table table-borderless">
+                        <thead>
+                            <tr>
+                                <th>Placeholder</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>&nbsp;</td>
+                            </tr>
+                            <tr>
+                                <td>&nbsp;</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- WebSocket Connection -->
+{% include 'components/websocket_connection.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart.js global bullshit
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.color = '#adb5bd';
+    Chart.defaults.plugins.legend.labels.color = '#adb5bd';
+    Chart.defaults.plugins.title.color = '#adb5bd';
+    Chart.defaults.scale.grid.color = 'rgba(255, 255, 255, 0.05)';
+    Chart.defaults.scale.ticks.color = '#adb5bd';
+    
+    // resize charts
+    const resizeCharts = () => {
+        charts.forEach(chart => {
+            chart.resize();
+        });
+    };
+    
+    // User Activity CHart
+    const userActivityData = {{ active_inactive|tojson }};
+    const activityColors = ['#1ca668', '#dc3545'];
+    
+    const userActivityChart = new Chart(
+        document.getElementById('userActivityChart'),
+        {
+            type: 'doughnut',
+            data: {
+                labels: userActivityData.map(item => item.name),
+                datasets: [
+                    {
+                        data: userActivityData.map(item => item.count),
+                        backgroundColor: activityColors,
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${context.label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    );
+    
+    // Script Status Chart
+    const scriptData = {{ script_execution|tojson }};
+    const scriptColors = ['#20c997', '#ffc107'];
+    
+    const scriptStatusChart = new Chart(
+        document.getElementById('scriptStatusChart'),
+        {
+            type: 'doughnut',
+            data: {
+                labels: scriptData.map(item => item.name),
+                datasets: [
+                    {
+                        data: scriptData.map(item => item.count),
+                        backgroundColor: scriptColors,
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${context.label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    );
+    
+    // Country Distribution Chart
+    const countryData = {{ country_stats|tojson }};
+    
+    // Take top 5 countries and group the rest as "Others" lmfao
+    let topCountries = countryData.slice(0, 5);
+    let otherCountries = countryData.slice(5);
+    
+    if (otherCountries.length > 0) {
+        const otherCount = otherCountries.reduce((sum, country) => sum + country.count, 0);
+        const otherPercentage = otherCountries.reduce((sum, country) => sum + country.percentage, 0);
+        topCountries.push({
+            name: 'Others',
+            count: otherCount,
+            percentage: otherPercentage
+        });
+    }
+    
+    // Generate colors for each country
+    function generateColors(count) {
+        const colors = [];
+        for (let i = 0; i < count; i++) {
+            const hue = (i * 360 / count) % 360;
+            colors.push(`hsl(${hue}, 70%, 60%)`);
+        }
+        return colors;
+    }
+    
+    const countryColors = generateColors(topCountries.length);
+    
+    const countryChart = new Chart(
+        document.getElementById('countryDistributionChart'),
+        {
+            type: 'pie',
+            data: {
+                labels: topCountries.map(item => item.name),
+                datasets: [
+                    {
+                        data: topCountries.map(item => item.count),
+                        backgroundColor: countryColors,
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${context.label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    );
+    
+    // Registration Trend Chart
+    const registrationData = {{ registration_trend|tojson }};
+    
+    const registrationChart = new Chart(
+        document.getElementById('registrationTrendChart'),
+        {
+            type: 'line',
+            data: {
+                labels: registrationData.map(item => {
+                    const date = new Date(item.date);
+                    return date.toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
+                }),
+                datasets: [
+                    {
+                        label: 'New Clients',
+                        data: registrationData.map(item => item.count),
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            precision: 0
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            }
+        }
+    );
+    
+    // Store all charts for resize handling
+    const charts = [userActivityChart, scriptStatusChart, countryChart, registrationChart];
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        resizeCharts();
+    });
+    // Without the above code it infinetly tries resizing and is absolutely unusable
+});
+
+// TODO WebSocket handler for real time updates
+function handleWebSocketMessage(data) {
+    if (data.type === 'user_update' && data.data) {
+    }
+}
+</script>
+{% endblock %}

@@ -196,12 +196,14 @@ async def after_serving():
 
 
 if __name__ == "__main__":
+    # we know debug is true because the only way this code can be ran is if your NOT using hypercorn
+    Settings.debug = True
     if USE_SSL:
         if not os.path.exists(CERT_FILE) or not os.path.exists(KEY_FILE):
             generate_self_signed_cert(CERT_FILE, KEY_FILE)
 
         ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         ssl_context.load_cert_chain(CERT_FILE, KEY_FILE)
-        app.run(debug=True, ssl=ssl_context, host="0.0.0.0", port=5000)
+        app.run(debug=True, ssl=ssl_context, host="127.0.0.1", port=5000)
     else:
-        app.run(debug=True, host="0.0.0.0", port=5000)
+        app.run(debug=True, host="127.0.0.1", port=5000)

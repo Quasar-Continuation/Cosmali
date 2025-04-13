@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .builder-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .preview-container {
+        height: 100%;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .copy-button {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        z-index: 10;
+        opacity: 0.7;
+        transition: opacity 0.3s ease;
+        color: #a17fe0;
+        background-color: rgba(20, 20, 20, 0.7);
+    }
+    
+    .copy-button:hover {
+        opacity: 1;
+        background-color: rgba(30, 30, 30, 0.9);
+        color: #fff;
+    }
+    
+    .form-control:focus {
+        border-color: #a17fe0;
+        box-shadow: 0 0 0 0.25rem rgba(161, 127, 224, 0.25);
+    }
+    
+    .btn-action {
+        margin-right: 8px;
+    }
+    
+    .options-card {
+        margin-bottom: 20px;
+    }
+    
+    .CodeMirror {
+        height: calc(100vh - 250px);
+        min-height: 300px;
+        border-radius: 8px; 
+        font-family: 'Consolas', monospace;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    
+    #payloadPreview {
+        display: none;
+    }
+    
+    .custom-toast {
+        background-color: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        backdrop-filter: blur(10px);
+        color: #fff;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+    }
+    
+    .custom-toast .toast-body {
+        color: #a17fe0;
+    }
+    
+    .custom-toast .btn-close {
+        filter: invert(1) grayscale(100%) brightness(200%);
+    }
+    
+    .editor-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    
+    .editor-row {
+        display: flex;
+        flex: 1;
+        min-height: calc(100vh - 200px);
+    }
+    
+    .full-height {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .editor-column {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid editor-container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="glass p-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="welcome-text">Payload Builder</h2>
+                    <span class="text-light">Customize and generate payloads</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row editor-row">
+        <!-- Options Panel -->
+        <div class="col-md-4 mb-4">
+            <div class="glass p-3 h-100">
+                <h4 class="mb-3 text-info">Configuration</h4>
+                <form id="builderForm">
+                    <div class="mb-3">
+                        <label for="hostInput" class="form-label">Hostname:Port</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control bg-dark text-light" 
+                                   id="hostInput" name="hostname_port" 
+                                   placeholder="example.com:5000" required>
+                            <button class="btn btn-outline-secondary" type="button" id="useLocalIP">
+                                <i class="fas fa-network-wired text-info"></i>
+                            </button>
+                        </div>
+                        <small class="form-text text-muted">
+                            Enter the hostname and port that clients will connect to
+                        </small>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary" id="generateButton">
+                            <i class="fas fa-cogs me-2"></i> Generate Payload
+                        </button>
+                    </div>
+                </form>
+                
+                <hr class="my-4 border-secondary">
+                
+                <div id="actionButtons" style="display: none;">
+                    <h5 class="mb-3">Actions</h5>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-success mb-2" id="downloadButton">
+                            <i class="fas fa-download me-2"></i> Download Payload
+                        </button>
+                        <button class="btn btn-outline-info mb-2" id="copyRawButton">
+                            <i class="fas fa-copy me-2"></i> Copy Raw
+                        </button>
+                        <button class="btn btn-outline-secondary" id="copyBase64Button">
+                            <i class="fas fa-file-code me-2"></i> Copy Base64 (UTF-16LE)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Payload Preview -->
+        <div class="col-md-8 mb-4">
+            <div class="glass p-3 position-relative full-height">
+                <h4 class="mb-3 text-info">Payload Preview</h4>
+                <button class="btn btn-sm copy-button" id="previewCopyButton" style="display: none;">
+                    <i class="fas fa-copy"></i>
+                </button>
+                <div class="preview-container flex-grow-1">
+                    <pre id="payloadPreview" class="bg-dark p-3 rounded text-light">
+# Payload will appear here after generation
+                    </pre>
+                    <textarea id="codeEditor" class="flex-grow-1"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const builderForm = document.getElementById('builderForm');
+    const payloadPreview = document.getElementById('payloadPreview');
+    const actionButtons = document.getElementById('actionButtons');
+    const previewCopyButton = document.getElementById('previewCopyButton');
+    const useLocalIPButton = document.getElementById('useLocalIP');
+    
+    let currentPayload = '';
+    let currentPayloadBase64 = '';
+    
+    // Initialize CodeMirror editor
+    const codeEditor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
+        mode: 'powershell',
+        theme: 'dracula',
+        lineNumbers: true,
+        indentUnit: 4,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        styleActiveLine: true,
+        extraKeys: {"Ctrl-Space": "autocomplete"},
+        tabSize: 4,
+        indentWithTabs: true,
+        readOnly: true
+    });
+    
+    codeEditor.setValue('# Payload will appear here after generation');
+    
+    // :ocal ip button
+    useLocalIPButton.addEventListener('click', function() {
+        document.getElementById('hostInput').value = window.location.hostname + ':' + 
+            (window.location.port ? window.location.port : (window.location.protocol === 'https:' ? '443' : '80'));
+    });
+    
+    // Form submit handler
+    builderForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const hostInput = document.getElementById('hostInput').value;
+        if (!hostInput) {
+            alert('Please enter a hostname:port value');
+            return;
+        }
+        
+        // Show loading state
+        document.getElementById('generateButton').innerHTML = 
+            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating...';
+        document.getElementById('generateButton').disabled = true;
+        
+        fetch('/api/build-payload', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                hostname_port: hostInput
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Update the preview
+                codeEditor.setValue(data.payload);
+                codeEditor.refresh();
+                currentPayload = data.payload;
+                currentPayloadBase64 = data.payload_base64;
+                
+                // Show action buttons
+                actionButtons.style.display = 'block';
+                previewCopyButton.style.display = 'block';
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while generating the payload');
+        })
+        .finally(() => {
+            // Restore button state
+            document.getElementById('generateButton').innerHTML = '<i class="fas fa-cogs me-2"></i> Generate Payload';
+            document.getElementById('generateButton').disabled = false;
+        });
+    });
+    
+    // Download button handler
+    document.getElementById('downloadButton').addEventListener('click', function() {
+        const hostInput = document.getElementById('hostInput').value;
+        
+        fetch('/api/download-payload', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                hostname_port: hostInput
+            }),
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `payload_${hostInput.replace(':', '_')}.ps1`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            
+            // Show success message
+            showToast('Payload downloaded successfully!');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while downloading the payload');
+        });
+    });
+    
+    // Copy Raw button handler
+    document.getElementById('copyRawButton').addEventListener('click', function() {
+        navigator.clipboard.writeText(currentPayload)
+            .then(() => {
+                showToast('Raw payload copied to clipboard!');
+            })
+            .catch(err => {
+                console.error('Failed to copy text: ', err);
+                alert('Failed to copy to clipboard');
+            });
+    });
+    
+    // Copy Base64 button handler
+    document.getElementById('copyBase64Button').addEventListener('click', function() {
+        navigator.clipboard.writeText(currentPayloadBase64)
+            .then(() => {
+                showToast('Base64 payload copied to clipboard!');
+            })
+            .catch(err => {
+                console.error('Failed to copy text: ', err);
+                alert('Failed to copy to clipboard');
+            });
+    });
+    
+    // Preview Copy button handler
+    document.getElementById('previewCopyButton').addEventListener('click', function() {
+        navigator.clipboard.writeText(currentPayload)
+            .then(() => {
+                showToast('Payload copied to clipboard!');
+            })
+            .catch(err => {
+                console.error('Failed to copy text: ', err);
+                alert('Failed to copy to clipboard');
+            });
+    });
+    
+    // Helper function to show toast message
+    function showToast(successMessage) {
+        const toast = document.createElement('div');
+        toast.className = 'position-fixed bottom-0 end-0 p-3';
+        toast.style.zIndex = '11';
+        toast.innerHTML = `
+            <div class="toast show align-items-center custom-toast" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${successMessage}
+                    </div>
+                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.remove();
+        }, 2000);
+    }
+    
+    // Make sure CodeMirror resizes properly when window is resized
+    window.addEventListener('resize', function() {
+        codeEditor.refresh();
+    });
+});
+</script>
+{% endblock %}

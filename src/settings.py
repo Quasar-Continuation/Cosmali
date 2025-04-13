@@ -11,3 +11,5 @@ class Settings:
     allowed_ips: ClassVar[List[str]] = [
         "127.0.0.1"
     ]  # this is the list of allowed IPs for rate limiting
+
+    debug: bool = False

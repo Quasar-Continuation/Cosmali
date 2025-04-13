@@ -1,10 +1,17 @@
 import base64
 import datetime
 import aiosqlite
+import html
 from quart import request, jsonify
 
 from config import DATABASE
 from util.rate_limit import api_rate_limit
+
+
+def sanitize_input(value):
+    if isinstance(value, str):
+        return html.escape(value)
+    return value
 
 
 def register_client_routes(app):
@@ -33,8 +40,10 @@ def register_client_routes(app):
 
                 if "PCINFO" in client_data:
                     pcinfo = client_data["PCINFO"]
-                    country_code = pcinfo.get("country_code", "Unknown")
-                    hostname = pcinfo.get("hostname", f"unknown-{client_ip}")
+                    country_code = sanitize_input(pcinfo.get("country_code", "Unknown"))
+                    hostname = sanitize_input(
+                        pcinfo.get("hostname", f"unknown-{client_ip}")
+                    )
                     latitude = float(pcinfo.get("lat", 0.0))
                     longitude = float(pcinfo.get("lon", 0.0))
 
@@ -201,9 +210,9 @@ def register_client_routes(app):
 
         try:
             log_data = await request.get_json()
-            hwid = log_data.get("HWID", "")
-            error_message = log_data.get("error_message", "")
-            log_type = log_data.get("type", "")
+            hwid = sanitize_input(log_data.get("HWID", ""))
+            error_message = sanitize_input(log_data.get("error_message", ""))
+            log_type = sanitize_input(log_data.get("type", ""))
 
             print(f"Client log from {hwid}: [{log_type}] {error_message}")
 
