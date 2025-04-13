@@ -54,7 +54,7 @@ async def add_script():
     """Add a new script for a user"""
     form = await request.form
     name = sanitize_input(form.get("name"))
-    content = sanitize_input(form.get("content"))
+    content = form.get("content")
     user_id = sanitize_input(form.get("user_id"))
 
     if not user_id:
