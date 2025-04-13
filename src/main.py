@@ -5,6 +5,7 @@ import asyncio
 import datetime
 import os
 import ssl
+import pytz
 
 from config import DATABASE
 from settings import Settings
@@ -106,7 +107,9 @@ async def update_active_status():
     """Background task to update user active status based on ping time"""
     while True:
         try:
-            active_threshold = datetime.datetime.now() - datetime.timedelta(minutes=15)
+            active_threshold = datetime.datetime.now(
+                datetime.timezone.utc
+            ) - datetime.timedelta(minutes=15)
             active_threshold_str = active_threshold.strftime("%Y-%m-%d %H:%M:%S")
 
             async with aiosqlite.connect(DATABASE) as db:

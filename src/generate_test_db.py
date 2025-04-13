@@ -2,6 +2,7 @@ import aiosqlite
 import asyncio
 import datetime
 import uuid
+import pytz
 from faker import Faker
 import argparse
 
@@ -54,18 +55,16 @@ async def generate_test_db(num_users=USERS_AMMOUNT_IF_TEST):
 
                 is_active = fake.boolean(chance_of_getting_true=30)
 
-                first_ping_days_ago = fake.random_int(min=1, max=30)
-                first_ping = datetime.datetime.now() - datetime.timedelta(
-                    days=first_ping_days_ago
-                )
+                now = datetime.datetime.now(datetime.timezone.utc)
 
-                max_days_since_first = (datetime.datetime.now() - first_ping).days
+                first_ping_days_ago = fake.random_int(min=1, max=30)
+                first_ping = now - datetime.timedelta(days=first_ping_days_ago)
+
+                max_days_since_first = (now - first_ping).days
                 last_ping_days_ago = fake.random_int(
                     min=0, max=max(1, max_days_since_first)
                 )
-                last_ping = datetime.datetime.now() - datetime.timedelta(
-                    days=last_ping_days_ago
-                )
+                last_ping = now - datetime.timedelta(days=last_ping_days_ago)
 
                 users.append(
                     (

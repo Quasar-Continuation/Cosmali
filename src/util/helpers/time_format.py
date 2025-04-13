@@ -1,4 +1,5 @@
 import datetime
+import pytz
 
 
 def format_time_ago(timestamp_str):
@@ -7,8 +8,16 @@ def format_time_ago(timestamp_str):
         return "Never"
 
     timestamp = datetime.datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
-    now = datetime.datetime.now()
-    diff = now - timestamp
+
+    utc_timestamp = (
+        pytz.UTC.localize(timestamp) if timestamp.tzinfo is None else timestamp
+    )
+
+    now = datetime.datetime.now(datetime.timezone.utc).astimezone()
+
+    local_timestamp = utc_timestamp.astimezone(now.tzinfo)
+
+    diff = now - local_timestamp
 
     if diff.total_seconds() < 60:
         return "Just now"
