@@ -13,14 +13,7 @@ $ProgressPreference = 'SilentlyContinue'
 
 [System.Net.ServicePointManager]::SecurityProtocol = "Tls, Tls11, Tls12, Ssl3"
 
-class TrustAllCertsPolicy : System.Net.ICertificatePolicy {
-    [bool] CheckValidationResult([System.Net.ServicePoint] $a,
-        [System.Security.Cryptography.X509Certificates.X509Certificate] $b,
-        [System.Net.WebRequest] $c,
-        [int] $d) {
-        return $true
-    }
-}
+class TrustAllCertsPolicy : System.Net.ICertificatePolicy {[bool] CheckValidationResult([System.Net.ServicePoint] $a,[System.Security.Cryptography.X509Certificates.X509Certificate] $b,[System.Net.WebRequest] $c,[int] $d) {return $true}}
 [System.Net.ServicePointManager]::CertificatePolicy = [TrustAllCertsPolicy]::new()
 
 function Get-Info {
