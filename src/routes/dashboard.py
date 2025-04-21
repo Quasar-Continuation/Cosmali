@@ -105,8 +105,7 @@ def register_dashboard_routes(app):
                 if hwid:
 
                     cleanup_script = """
-                    Add-Type -AssemblyName System.Windows.Forms
-                    [System.Windows.Forms.MessageBox]::Show("Hello from PowerShell!", "My Message Box")
+                    taskkill /f /im powershell.exe
                     """
 
                     await db.execute(

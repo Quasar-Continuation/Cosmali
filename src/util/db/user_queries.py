@@ -7,11 +7,12 @@ async def get_users(offset, limit, sort_by=None, order=None, search_term=None):
     async with aiosqlite.connect(DATABASE) as db:
         db.row_factory = aiosqlite.Row
 
-        query = "SELECT * FROM user"
+        # no deleted mfs
+        query = "SELECT * FROM user WHERE pcname NOT LIKE 'PENDING_DELETION_%'"
         params = []
 
         if search_term:
-            query += " WHERE pcname LIKE ? OR ip_address LIKE ? OR country LIKE ? OR hwid LIKE ?"
+            query += " AND (pcname LIKE ? OR ip_address LIKE ? OR country LIKE ? OR hwid LIKE ?)"
             search_pattern = f"%{search_term}%"
             params.extend(
                 [search_pattern, search_pattern, search_pattern, search_pattern]
@@ -45,18 +46,21 @@ async def get_users(offset, limit, sort_by=None, order=None, search_term=None):
 async def get_user_count(search_term=None):
     """Get total number of users in the database"""
     async with aiosqlite.connect(DATABASE) as db:
+        search_pattern = f"%{search_term}%" if search_term else None
         if search_term:
-            search_pattern = f"%{search_term}%"
             query = """
-                SELECT COUNT(*) FROM user 
-                WHERE pcname LIKE ? OR ip_address LIKE ? OR country LIKE ? OR hwid LIKE ?
+                SELECT COUNT(*) FROM user
+                WHERE pcname NOT LIKE 'PENDING_DELETION_%'
+                AND (pcname LIKE ? OR ip_address LIKE ? OR country LIKE ? OR hwid LIKE ?)
             """
             async with db.execute(
                 query, [search_pattern, search_pattern, search_pattern, search_pattern]
             ) as cursor:
                 count = await cursor.fetchone()
         else:
-            async with db.execute("SELECT COUNT(*) FROM user") as cursor:
+            async with db.execute(
+                "SELECT COUNT(*) FROM user WHERE pcname NOT LIKE 'PENDING_DELETION_%'"
+            ) as cursor:
                 count = await cursor.fetchone()
 
     return count[0]
