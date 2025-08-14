@@ -63,7 +63,7 @@ async def get_user_count(search_term=None):
             ) as cursor:
                 count = await cursor.fetchone()
 
-    return count[0]
+    return count[0]  # type: ignore
 
 
 async def fetch_users_for_map():

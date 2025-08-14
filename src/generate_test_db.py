@@ -97,7 +97,7 @@ async def generate_test_db(num_users=USERS_AMMOUNT_IF_TEST):
 
         async with db.execute("SELECT COUNT(*) FROM user") as cursor:
             count = await cursor.fetchone()
-            print(f"Database now contains {count[0]} users")
+            print(f"Database now contains {count[0]} users")  # type: ignore
 
 
 if __name__ == "__main__":

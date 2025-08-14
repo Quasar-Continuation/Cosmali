@@ -54,9 +54,9 @@ Cosmali is a stealthy client management and control panel designed to deploy and
 
 ## Usage
 
-Start the Quart application using Hypercorn:
+Start the Quart application using Uvicorn (recommended):
 ```bash
-hypercorn main:app --bind 0.0.0.0:5000 --certfile cert.pem --keyfile key.pem
+uvicorn src.main:app --host 0.0.0.0 --port 5000 --ssl-certfile cert.pem --ssl-keyfile key.pem --workers <workers> --loop uvloop --http httptools
 ```
 Open your browser and navigate to `https://localhost:5000` to access the UI.
 

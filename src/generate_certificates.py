@@ -41,8 +41,8 @@ def generate_self_signed_cert(cert_file, key_file):
 
 
 if __name__ == "__main__":
-    base_dir = os.path.dirname(os.path.dirname(__file__))
-    CERT_FILE = os.path.join(base_dir, "cert.pem")
-    KEY_FILE = os.path.join(base_dir, "key.pem")
+    current_working_dir = os.getcwd()
+    CERT_FILE = os.path.join(current_working_dir, "cert.pem")
+    KEY_FILE = os.path.join(current_working_dir, "key.pem")
 
     generate_self_signed_cert(CERT_FILE, KEY_FILE)

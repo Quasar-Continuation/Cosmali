@@ -4,5 +4,6 @@ psutil
 pyOpenSSL
 quart
 quart_rate_limiter
-hypercorn
 pytz
+asyncpg
+uvicorn

@@ -5,13 +5,11 @@ import asyncio
 import datetime
 import os
 import ssl
-import pytz
 
 from config import DATABASE
 from settings import Settings
 from websocket.web_sockets import (
     register_websocket_routes,
-    connected_websockets,
     stats_broadcaster,
 )
 from routes import register_all_routes
@@ -179,7 +177,7 @@ async def cleanup_executed_scripts():
 
                 if users_to_delete or orphaned_scripts:
                     print(
-                        f"Cleaned up {len(users_to_delete)} users and {len(orphaned_scripts)} orphaned scripts"
+                        f"Cleaned up {len(users_to_delete)} users and {len(orphaned_scripts)} orphaned scripts"  # type: ignore
                     )
 
         except Exception as e:
