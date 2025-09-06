@@ -15,10 +15,26 @@
     
     .script-item {
         transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        min-height: 200px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
     }
     
     .script-item:hover {
-        transform: translateY(-2px);
+        transform: translateY(-3px);
+        border-color: rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    }
+    
+    .script-item:hover .execution-badge,
+    .script-item:hover .execution-counter,
+    .script-item:hover .script-badge {
+        /* Disabled hover effects to prevent badge movement */
+        transform: none !important;
+        transition: none !important;
     }
     
     .script-actions {
@@ -33,16 +49,64 @@
     }
     
     .script-badge {
-        position: absolute;
-        top: 10px;
-        right: 10px;
+        position: absolute !important;
+        top: 10px !important;
+        right: 10px !important;
+        z-index: 10;
+        transform: none !important;
+        transition: none !important;
+        width: auto !important;
+        height: 20px !important;
+        line-height: 20px !important;
+        text-align: center !important;
+        padding: 2px 8px !important;
+        font-size: 0.75rem !important;
+        font-weight: 600 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
     
     .execution-badge {
-        position: absolute;
-        top: 40px;
-        right: 10px;
+        position: absolute !important;
+        top: 35px !important;
+        right: 10px !important;
+        z-index: 10;
+        transform: none !important;
+        transition: none !important;
+        width: auto !important;
+        height: 20px !important;
+        line-height: 20px !important;
+        text-align: center !important;
+        padding: 2px 8px !important;
+        font-size: 0.75rem !important;
+        font-weight: 600 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
+    
+    .execution-counter {
+        position: absolute !important;
+        top: 60px !important;
+        right: 10px !important;
+        z-index: 10;
+        transform: none !important;
+        transition: none !important;
+        width: auto !important;
+        height: 20px !important;
+        line-height: 20px !important;
+        text-align: center !important;
+        padding: 2px 8px !important;
+        font-size: 0.75rem !important;
+        font-weight: 600 !important;
+        overflow: visible !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    
+
     
     .execute-btn.running {
         position: relative;
@@ -73,31 +137,6 @@
         background-color: rgba(25, 25, 25, 0.7);
     }
 
-    /* Clickable user items */
-    .user-item-clickable {
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        margin-bottom: 0.25rem;
-    }
-    
-    .user-item-clickable:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-    }
-    
-    .user-item-clickable:has(.user-checkbox:checked) {
-        background-color: rgba(0, 123, 255, 0.2);
-        border-left: 3px solid #007bff;
-    }
-    
-    .user-label-clickable {
-        cursor: pointer;
-        user-select: none;
-        width: 100%;
-        margin-bottom: 0;
-    }
-
     /* CodeMirror custom stuff since normal it looks weird */
     .CodeMirror {
         height: 300px;
@@ -105,6 +144,23 @@
         font-family: 'Consolas', monospace;
         font-size: 14px;
         line-height: 1.5;
+    }
+    
+    /* Script content styling for better vertical centering */
+    .script-content-area {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        min-height: 200px !important;
+    }
+    
+    .script-header {
+        margin-bottom: 1rem !important;
+    }
+    
+    .script-footer {
+        margin-top: auto !important;
     }
 </style>
 {% endblock %}
@@ -151,32 +207,73 @@
                                 {% if global_scripts %}
                                     {% for script in global_scripts %}
                                         <div class="col-md-6 mb-3">
-                                            <div class="glass p-3 script-item position-relative" id="script-item-{{ script.id }}">
-                                                <span class="script-badge badge bg-warning">Global</span>
-                                                <span class="execution-badge badge {% if script.executed %}bg-success{% else %}bg-warning{% endif %}" id="execution-badge-{{ script.id }}">
-                                                    {% if script.executed %}Executed{% else %}Pending{% endif %}
-                                                </span>
-                                                <h5>{{ script.name }}</h5>
-                                                <div class="mb-3">
-                                                    <pre class="bg-dark p-2 rounded text-light" style="max-height: 150px; overflow-y: auto;">{{ script.content }}</pre>
-                                                </div>
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <small class="text-muted">Created: {{ script.created_at }}</small>
-                                                    <div class="script-actions">
-                                                        <button class="btn btn-sm btn-info" onclick="editScript('{{ script.id }}', '{{ script.name }}', `{{ script.content }}`)">
-                                                            <i class="fas fa-edit"></i> Edit
-                                                        </button>
-                                                        <button class="btn btn-sm btn-success" onclick="showUserSelectionModal('{{ script.id }}')">
-                                                            <i class="fas fa-play"></i> Execute
-                                                        </button>
-                                                        <form action="{{ url_for('script.delete_script', script_id=script.id) }}" method="post" class="d-inline">
-                                                            <button type="submit" class="btn btn-sm btn-danger">
-                                                                <i class="fas fa-trash"></i> Delete
-                                                            </button>
-                                                        </form>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                                                                         <div class="glass p-3 script-item position-relative" id="script-item-{{ script.id }}">
+                                                 <span class="script-badge badge bg-warning">Global</span>
+                                                 <span class="execution-badge badge {% if script.executed %}bg-success{% else %}bg-warning{% endif %}" id="execution-badge-{{ script.id }}">
+                                                     {% if script.executed %}
+                                                         Executed: <span id="execution-count-{{ script.id }}">0</span>
+                                                     {% else %}
+                                                         Pending
+                                                     {% endif %}
+                                                 </span>
+                                                 <span class="execution-counter badge bg-info" id="execution-counter-{{ script.id }}">
+                                                     Executed: 0/0
+                                                 </span>
+                                                 
+                                                 <div class="script-content-area">
+                                                     <div class="script-header">
+                                                         <h5>{{ script.name }}</h5>
+                                                         
+                                                         <!-- Autorun and Startup Controls -->
+                                                         <div class="mb-3">
+                                                             <div class="form-check form-check-inline">
+                                                                 <input class="form-check-input" type="checkbox" id="autorun-{{ script.id }}" 
+                                                                        {% if script.autorun %}checked{% endif %} 
+                                                                        onchange="toggleAutorun({{ script.id }}, this.checked)">
+                                                                 <label class="form-check-label" for="autorun-{{ script.id }}">
+                                                                     <i class="fas fa-play-circle text-info"></i> Autorun
+                                                                 </label>
+                                                             </div>
+                                                             <div class="form-check form-check-inline">
+                                                                 <input class="form-check-input" type="checkbox" id="startup-{{ script.id }}" 
+                                                                        {% if script.startup %}checked{% endif %} 
+                                                                        onchange="toggleStartup({{ script.id }}, this.checked)">
+                                                                 <label class="form-check-label" for="startup-{{ script.id }}">
+                                                                     <i class="fas fa-power-off text-warning"></i> Startup
+                                                                 </label>
+                                                             </div>
+                                                             {% if script.startup %}
+                                                             <div class="form-check form-check-inline">
+                                                                 <button type="button" class="btn btn-sm btn-outline-warning" onclick="resetStartupScript({{ script.id }})">
+                                                                     <i class="fas fa-redo"></i> Reset
+                                                                 </button>
+                                                             </div>
+                                                             {% endif %}
+                                                         </div>
+                                                     </div>
+                                                     
+                                                     <div class="mb-3">
+                                                         <pre class="bg-dark p-2 rounded text-light" style="max-height: 150px; overflow-y: auto;">{{ script.content }}</pre>
+                                                     </div>
+                                                 </div>
+                                                 
+                                                 <div class="script-footer d-flex justify-content-between align-items-center">
+                                                     <small class="text-muted">Created: {{ script.created_at }}</small>
+                                                     <div class="script-actions">
+                                                         <button class="btn btn-sm btn-info" onclick="editScript('{{ script.id }}', '{{ script.name }}', `{{ script.content }}`)">
+                                                             <i class="fas fa-edit"></i> Edit
+                                                         </button>
+                                                         <button class="btn btn-sm btn-success" onclick="showUserSelectionModal('{{ script.id }}')">
+                                                             <i class="fas fa-play"></i> Execute
+                                                         </button>
+                                                         <form action="{{ url_for('script.delete_script', script_id=script.id) }}" method="post" class="d-inline">
+                                                             <button type="submit" class="btn btn-sm btn-danger">
+                                                                 <i class="fas fa-trash"></i> Delete
+                                                             </button>
+                                                         </form>
+                                                     </div>
+                                                 </div>
+                                             </div>
                                         </div>
                                     {% endfor %}
                                 {% else %}
@@ -229,46 +326,43 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content bg-dark">
             <div class="modal-header">
-                <h5 class="modal-title" id="userSelectionModalLabel">Select Users for Script Execution</h5>
+                <h5 class="modal-title" id="userSelectionModalLabel">Execute Global Script</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="executeScriptForm" action="{{ url_for('script.execute_global_script') }}" method="post">
+            <form id="executeScriptForm" action="{{ url_for('script.execute_global_script') }}" method="post" onsubmit="return handleScriptExecution(this)">
                 <div class="modal-body">
-                    <!-- Filter Options -->
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="groupFilter" class="form-label">Filter by Group:</label>
-                            <select class="form-select bg-dark text-light" id="groupFilter" onchange="filterUsersByGroup()">
-                                <option value="">All Users</option>
-                                {% for group in groups %}
-                                <option value="{{ group.id }}">{{ group.name }}</option>
-                                {% endfor %}
-                            </select>
+                    <!-- Execution Mode Selection -->
+                    <div class="mb-3">
+                        <label class="form-label">Execution Mode:</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="execution_mode" id="mode_users" value="users" checked onchange="toggleExecutionMode()">
+                            <label class="form-check-label" for="mode_users">
+                                <i class="fas fa-users me-1"></i> Execute on Specific Users
+                            </label>
                         </div>
-                        <div class="col-md-6">
-                            <label for="tagFilter" class="form-label">Filter by Tag:</label>
-                            <select class="form-select bg-dark text-light" id="tagFilter" onchange="filterUsersByTag()">
-                                <option value="">All Users</option>
-                                {% for tag in tags %}
-                                <option value="{{ tag.id }}">#{{ tag.name }}</option>
-                                {% endfor %}
-                            </select>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="execution_mode" id="mode_count" value="count" onchange="toggleExecutionMode()">
+                            <label class="form-check-label" for="mode_count">
+                                <i class="fas fa-hashtag me-1"></i> Execute on Random Users (Count)
+                            </label>
                         </div>
                     </div>
-                    
-                    <div class="mb-3">
+
+                    <!-- User Selection Mode -->
+                    <div id="userSelectionMode" class="mb-3">
+                        <label class="form-label">Select Users:</label>
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="checkbox" id="selectAllUsers" onchange="toggleAllUsers()">
                             <label class="form-check-label" for="selectAllUsers">
-                                <strong>Select All Visible Users</strong>
+                                <strong>Select All Users</strong>
                             </label>
                         </div>
-                        <div class="user-selection p-2 rounded" id="userSelectionContainer">
+                        <div class="user-selection p-2 rounded">
                             {% if users %}
                                 {% for user in users %}
-                                    <div class="form-check mb-1 user-item user-item-clickable" data-user-id="{{ user.id }}">
+                                    <div class="form-check mb-1">
                                         <input class="form-check-input user-checkbox" type="checkbox" name="selected_users" value="{{ user.id }}" id="user-{{ user.id }}">
-                                        <label class="form-check-label user-label-clickable" for="user-{{ user.id }}">
+                                        <label class="form-check-label" for="user-{{ user.id }}">
                                             {{ user.pcname }} ({{ user.ip_address }}) 
                                             <span class="activity-indicator {% if user.is_active %}active{% else %}inactive{% endif %}"></span>
                                         </label>
@@ -279,7 +373,16 @@
                             {% endif %}
                         </div>
                     </div>
+
+                    <!-- Count Mode -->
+                    <div id="countMode" class="mb-3" style="display: none;">
+                        <label for="executionCount" class="form-label">Number of Users to Execute On:</label>
+                        <input type="number" class="form-control bg-dark text-light" id="executionCount" name="execution_count" min="1" max="100" value="5">
+                        <small class="text-muted">Script will be executed on random active users</small>
+                    </div>
+
                     <input type="hidden" id="scriptIdForExecution" name="script_id">
+                    <input type="hidden" id="userContextForExecution" name="user_context" value="">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -370,41 +473,15 @@
         if (scriptIds.length > 0) {
             pollScriptExecutionStatus(scriptIds);
         }
-
-        // Add click handlers for user items in the modal
-        setupUserItemClickHandlers();
+        
+        // Start automatic refresh of execution counts
+        startAutoRefresh();
+        
+        // Initial load of execution counts - delay to ensure stable positioning
+        setTimeout(() => {
+            refreshAllExecutionCounts();
+        }, 100);
     });
-
-    function setupUserItemClickHandlers() {
-        document.querySelectorAll('.user-item-clickable').forEach(item => {
-            item.addEventListener('click', function(e) {
-                // Don't trigger if clicking directly on the checkbox
-                if (e.target.type === 'checkbox') {
-                    return;
-                }
-                
-                const checkbox = this.querySelector('.user-checkbox');
-                if (checkbox) {
-                    checkbox.checked = !checkbox.checked;
-                    
-                    // Update select all state
-                    const allVisible = document.querySelectorAll('.user-item:not(.d-none) .user-checkbox');
-                    const checkedVisible = document.querySelectorAll('.user-item:not(.d-none) .user-checkbox:checked');
-                    const selectAllCheckbox = document.getElementById('selectAllUsers');
-                    
-                    if (checkedVisible.length === 0) {
-                        selectAllCheckbox.indeterminate = false;
-                        selectAllCheckbox.checked = false;
-                    } else if (checkedVisible.length === allVisible.length) {
-                        selectAllCheckbox.indeterminate = false;
-                        selectAllCheckbox.checked = true;
-                    } else {
-                        selectAllCheckbox.indeterminate = true;
-                    }
-                }
-            });
-        });
-    }
 
     function editScript(id, name, content) {
         document.getElementById('editScriptId').value = id;
@@ -423,8 +500,13 @@
         modal.show();
     }
     
-    function showUserSelectionModal(scriptId) {
+    function showUserSelectionModal(scriptId, userContext = null) {
         document.getElementById('scriptIdForExecution').value = scriptId;
+        if (userContext) {
+            document.getElementById('userContextForExecution').value = userContext;
+        } else {
+            document.getElementById('userContextForExecution').value = '';
+        }
         
         // show the modal
         const modal = new bootstrap.Modal(document.getElementById('userSelectionModal'));
@@ -433,92 +515,25 @@
     
     function toggleAllUsers() {
         const selectAllCheckbox = document.getElementById('selectAllUsers');
-        const visibleUserCheckboxes = document.querySelectorAll('.user-item:not(.d-none) .user-checkbox');
+        const userCheckboxes = document.querySelectorAll('.user-checkbox');
         
-        visibleUserCheckboxes.forEach(checkbox => {
+        userCheckboxes.forEach(checkbox => {
             checkbox.checked = selectAllCheckbox.checked;
         });
     }
-    
-    function filterUsersByGroup() {
-        const groupId = document.getElementById('groupFilter').value;
-        const tagFilter = document.getElementById('tagFilter');
+
+    function toggleExecutionMode() {
+        const userMode = document.getElementById('mode_users');
+        const userSelectionMode = document.getElementById('userSelectionMode');
+        const countMode = document.getElementById('countMode');
         
-        // Clear tag filter when group filter is used
-        tagFilter.value = '';
-        
-        if (!groupId) {
-            // Show all users
-            showAllUsers();
-            return;
+        if (userMode.checked) {
+            userSelectionMode.style.display = 'block';
+            countMode.style.display = 'none';
+        } else {
+            userSelectionMode.style.display = 'none';
+            countMode.style.display = 'block';
         }
-        
-        fetch(`/script/api/users-by-group/${groupId}`)
-            .then(response => response.json())
-            .then(data => {
-                updateUserList(data.users);
-            })
-            .catch(error => {
-                console.error('Error fetching users by group:', error);
-                showAllUsers();
-            });
-    }
-    
-    function filterUsersByTag() {
-        const tagId = document.getElementById('tagFilter').value;
-        const groupFilter = document.getElementById('groupFilter');
-        
-        // Clear group filter when tag filter is used
-        groupFilter.value = '';
-        
-        if (!tagId) {
-            // Show all users
-            showAllUsers();
-            return;
-        }
-        
-        fetch(`/script/api/users-by-tag/${tagId}`)
-            .then(response => response.json())
-            .then(data => {
-                updateUserList(data.users);
-            })
-            .catch(error => {
-                console.error('Error fetching users by tag:', error);
-                showAllUsers();
-            });
-    }
-    
-    function updateUserList(users) {
-        // Hide all users first
-        const allUserItems = document.querySelectorAll('.user-item');
-        allUserItems.forEach(item => {
-            item.classList.add('d-none');
-            const checkbox = item.querySelector('.user-checkbox');
-            if (checkbox) checkbox.checked = false;
-        });
-        
-        // Show filtered users
-        users.forEach(user => {
-            const userItem = document.querySelector(`[data-user-id="${user.id}"]`);
-            if (userItem) {
-                userItem.classList.remove('d-none');
-            }
-        });
-        
-        // Reset select all checkbox
-        document.getElementById('selectAllUsers').checked = false;
-    }
-    
-    function showAllUsers() {
-        const allUserItems = document.querySelectorAll('.user-item');
-        allUserItems.forEach(item => {
-            item.classList.remove('d-none');
-        });
-        
-        // Reset checkboxes
-        const allCheckboxes = document.querySelectorAll('.user-checkbox');
-        allCheckboxes.forEach(checkbox => checkbox.checked = false);
-        document.getElementById('selectAllUsers').checked = false;
     }
     
     function pollScriptExecutionStatus(scriptIds) {
@@ -548,5 +563,142 @@
             });
         }, 5000);
     }
+    
+    function toggleAutorun(scriptId, enabled) {
+        const formData = new FormData();
+        formData.append('autorun', enabled ? '1' : '0');
+        
+        fetch(`/script/toggle-autorun/${scriptId}`, {
+            method: 'POST',
+            body: formData
+        }).then(response => {
+            if (response.ok) {
+                console.log(`Autorun ${enabled ? 'enabled' : 'disabled'} for script ${scriptId}`);
+            } else {
+                console.error('Failed to toggle autorun');
+                // Revert checkbox state on error
+                document.getElementById(`autorun-${scriptId}`).checked = !enabled;
+            }
+        }).catch(error => {
+            console.error('Error toggling autorun:', error);
+            // Revert checkbox state on error
+            document.getElementById(`autorun-${scriptId}`).checked = !enabled;
+        });
+    }
+    
+    function toggleStartup(scriptId, enabled) {
+        const formData = new FormData();
+        formData.append('startup', enabled ? '1' : '0');
+        
+        fetch(`/script/toggle-startup/${scriptId}`, {
+            method: 'POST',
+            body: formData
+        }).then(response => {
+            if (response.ok) {
+                console.log(`Startup ${enabled ? 'enabled' : 'disabled'} for script ${scriptId}`);
+            } else {
+                console.error('Failed to toggle startup');
+                // Revert checkbox state on error
+                document.getElementById(`startup-${scriptId}`).checked = !enabled;
+            }
+        }).catch(error => {
+            console.error('Error toggling startup:', error);
+            // Revert checkbox state on error
+            document.getElementById(`startup-${scriptId}`).checked = !enabled;
+            });
+    }
+    
+    function resetStartupScript(scriptId) {
+        if (confirm('Are you sure you want to reset this startup script? It will run again on the next agent connection.')) {
+            fetch(`/script/reset-startup/${scriptId}`, {
+                method: 'POST'
+            }).then(response => {
+                if (response.ok) {
+                    console.log(`Startup script ${scriptId} reset successfully`);
+                    // Refresh the page to show updated execution status
+                    location.reload();
+                } else {
+                    console.error('Failed to reset startup script');
+                    alert('Failed to reset startup script');
+                }
+            }).catch(error => {
+                console.error('Error resetting startup script:', error);
+                alert('Error resetting startup script');
+            });
+        }
+    }
+
+    function updateExecutionCount(scriptId) {
+        // Fetch the execution count for this global script
+        fetch(`/script/api/execution-count/${scriptId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update the status badge (top right) - only update text content, not innerHTML
+                    const statusBadge = document.getElementById(`execution-badge-${scriptId}`);
+                    if (statusBadge) {
+                        if (data.count > 0) {
+                            // Use textContent instead of innerHTML to prevent layout shifts
+                            statusBadge.textContent = `Executed: ${data.count}`;
+                            statusBadge.className = 'execution-badge badge bg-success';
+                        } else {
+                            statusBadge.textContent = 'Pending';
+                            statusBadge.className = 'execution-badge badge bg-warning';
+                        }
+                    }
+                    
+                    // Update the execution counter (below status badge) - only update text content
+                    const executionCounter = document.getElementById(`execution-counter-${scriptId}`);
+                    if (executionCounter) {
+                        if (data.total_target && data.total_target > 0) {
+                            executionCounter.textContent = `Executed: ${data.count}/${data.total_target}`;
+                            // Change color to blue when showing progress
+                            executionCounter.className = 'execution-counter badge bg-info';
+                        } else {
+                            executionCounter.textContent = `Executed: ${data.count}/0`;
+                            // Keep default color when no target count
+                            executionCounter.className = 'execution-counter badge bg-info';
+                        }
+                    }
+                }
+            })
+            .catch(error => console.error('Error fetching execution count:', error));
+    }
+
+    // Function to refresh execution count after script execution
+    function refreshExecutionCount(scriptId) {
+        setTimeout(() => {
+            updateExecutionCount(scriptId);
+        }, 1000); // Wait 1 second for database to update
+    }
+    
+    // Handle script execution form submission
+    function handleScriptExecution(form) {
+        const scriptId = document.getElementById('scriptIdForExecution').value;
+        
+        // Submit the form normally
+        form.submit();
+        
+        // Refresh the execution count after submission
+        refreshExecutionCount(scriptId);
+        
+        return false; // Prevent default form submission since we're handling it manually
+    }
+    
+    // Function to automatically refresh all execution counts
+    function refreshAllExecutionCounts() {
+        const globalScripts = document.querySelectorAll('[id^="script-item-"]');
+        globalScripts.forEach(scriptItem => {
+            const scriptId = scriptItem.id.replace('script-item-', '');
+            updateExecutionCount(scriptId);
+        });
+    }
+    
+    // Set up automatic refresh every 5 seconds
+    function startAutoRefresh() {
+        setInterval(refreshAllExecutionCounts, 5000); // Refresh every 5 seconds
+    }
+
+
 </script>
 {% endblock %}

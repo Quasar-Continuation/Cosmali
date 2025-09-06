@@ -7,3 +7,5 @@ quart_rate_limiter
 pytz
 asyncpg
 uvicorn
+asyncio
+aiohttp

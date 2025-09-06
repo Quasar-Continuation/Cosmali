@@ -51,7 +51,8 @@ async def init_db():
                     first_ping TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     is_active BOOLEAN DEFAULT 0,
                     hwid TEXT UNIQUE,
-                    hostname TEXT
+                    hostname TEXT,
+                    elevated_status TEXT DEFAULT 'Unknown'
                 )
                 """
             )
@@ -65,6 +66,10 @@ async def init_db():
                     is_global BOOLEAN DEFAULT 0,
                     user_id INTEGER,
                     executed BOOLEAN DEFAULT 0,
+                    autorun BOOLEAN DEFAULT 0,
+                    startup BOOLEAN DEFAULT 0,
+                    manually_triggered BOOLEAN DEFAULT 0,
+                    execution_order INTEGER DEFAULT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (user_id) REFERENCES user (id)
                 )
@@ -73,64 +78,31 @@ async def init_db():
 
             await db.execute(
                 """
-                CREATE TABLE IF NOT EXISTS client_groups (
+                CREATE TABLE IF NOT EXISTS console_commands (
                     id INTEGER PRIMARY KEY,
-                    name TEXT NOT NULL UNIQUE,
-                    description TEXT,
-                    color TEXT DEFAULT '#007bff',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-                """
-            )
-
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS client_group_assignments (
-                    client_id INTEGER,
-                    group_id INTEGER,
-                    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (client_id) REFERENCES user (id) ON DELETE CASCADE,
-                    FOREIGN KEY (group_id) REFERENCES client_groups (id) ON DELETE CASCADE,
-                    PRIMARY KEY (client_id, group_id)
-                )
-                """
-            )
-
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS client_tags (
-                    id INTEGER PRIMARY KEY,
-                    name TEXT NOT NULL UNIQUE,
-                    color TEXT DEFAULT '#6c757d'
-                )
-                """
-            )
-
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS client_tag_assignments (
-                    client_id INTEGER,
-                    tag_id INTEGER,
-                    FOREIGN KEY (client_id) REFERENCES user (id) ON DELETE CASCADE,
-                    FOREIGN KEY (tag_id) REFERENCES client_tags (id) ON DELETE CASCADE,
-                    PRIMARY KEY (client_id, tag_id)
-                )
-                """
-            )
-
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS script_execution_logs (
-                    id INTEGER PRIMARY KEY,
-                    script_id INTEGER,
-                    client_id INTEGER,
-                    execution_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    execution_end TIMESTAMP,
-                    status TEXT DEFAULT 'pending',
+                    user_id INTEGER NOT NULL,
+                    command TEXT NOT NULL,
+                    shell_type TEXT NOT NULL DEFAULT 'powershell',
+                    status TEXT NOT NULL DEFAULT 'pending',
                     output TEXT,
-                    error_message TEXT,
-                    FOREIGN KEY (script_id) REFERENCES scripts (id) ON DELETE CASCADE,
-                    FOREIGN KEY (client_id) REFERENCES user (id) ON DELETE CASCADE
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    executed_at TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES user (id)
+                )
+                """
+            )
+
+            await db.execute(
+                """
+                CREATE TABLE IF NOT EXISTS notification_configs (
+                    id INTEGER PRIMARY KEY,
+                    type TEXT NOT NULL CHECK (type IN ('discord', 'telegram')),
+                    webhook_url TEXT,
+                    bot_token TEXT,
+                    chat_id TEXT,
+                    is_enabled BOOLEAN DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP
                 )
                 """
             )
@@ -269,6 +241,6 @@ if __name__ == "__main__":
 
         ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         ssl_context.load_cert_chain(CERT_FILE, KEY_FILE)
-        app.run(debug=True, ssl=ssl_context, host="127.0.0.1", port=5000)
+        app.run(debug=True, ssl=ssl_context, host="127.0.0.1", port=40175)
     else:
-        app.run(debug=True, host="127.0.0.1", port=5000)
+        app.run(debug=True, host="127.0.0.1", port=40175)

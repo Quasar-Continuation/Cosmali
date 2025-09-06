@@ -4,8 +4,10 @@ from .user import register_user_routes
 from .client_api import register_client_routes
 from .script_routes import register_script_routes
 from .statistics import register_statistics_routes
+from .console import register_console_routes
 from .builder import builder_bp
-from .groups import register_group_routes
+from .notifications import register_notification_routes
+from .settings import register_settings_routes
 
 
 def register_all_routes(app):
@@ -16,7 +18,9 @@ def register_all_routes(app):
     app = register_client_routes(app)
     app = register_script_routes(app)
     app = register_statistics_routes(app)
-    app = register_group_routes(app)
+    app = register_console_routes(app)
+    app = register_notification_routes(app)
+    app = register_settings_routes(app)
 
     # Builder Blueprint
     app.register_blueprint(builder_bp)

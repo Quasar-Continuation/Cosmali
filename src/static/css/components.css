@@ -43,6 +43,23 @@
     position: relative;
 }
 
+/* Elevated status badges */
+.elevated-status-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.elevated-status-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
 .active {
     background-color: #28a745;
     box-shadow: 0 0 10px rgba(40, 167, 69, 0.8); /* Glow effect */
@@ -148,6 +165,126 @@
 
 .table {
     margin-bottom: 0;
+    table-layout: fixed;
+    width: 100%;
+}
+
+/* Column width controls */
+.table th:nth-child(1), /* ID column */
+.table td:nth-child(1) {
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
+}
+
+.table th:nth-child(2), /* HWID column */
+.table td:nth-child(2) {
+    width: 200px;
+    min-width: 180px;
+    max-width: 200px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    hyphens: auto;
+}
+
+.table th:nth-child(3), /* PC Name column */
+.table td:nth-child(3) {
+    width: 120px;
+    min-width: 100px;
+    max-width: 120px;
+}
+
+.table th:nth-child(4), /* Elevated Status column */
+.table td:nth-child(4) {
+    width: 140px;
+    min-width: 120px;
+    max-width: 140px;
+}
+
+.table th:nth-child(5), /* IP Address column */
+.table td:nth-child(5) {
+    width: 140px;
+    min-width: 120px;
+    max-width: 140px;
+}
+
+.table th:nth-child(6), /* Country column */
+.table td:nth-child(6) {
+    width: 140px;
+    min-width: 140px;
+    max-width: 140px;
+    text-align: center;
+}
+
+.table th:nth-child(7), /* Activity column */
+.table td:nth-child(7) {
+    width: 100px;
+    min-width: 80px;
+    max-width: 100px;
+}
+
+.table th:nth-child(8), /* Last Ping column */
+.table td:nth-child(8) {
+    width: 120px;
+    min-width: 100px;
+    max-width: 120px;
+}
+
+.table th:nth-child(9), /* First Seen column */
+.table td:nth-child(9) {
+    width: 120px;
+    min-width: 100px;
+    max-width: 120px;
+}
+
+.table th:nth-child(10), /* Actions column */
+.table td:nth-child(10) {
+    width: 100px;
+    min-width: 80px;
+    max-width: 100px;
+    text-align: center;
+}
+
+/* Country flag styling */
+.country-flag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 1.1em;
+    white-space: nowrap;
+    flex-wrap: nowrap;
+}
+
+.country-code {
+    font-size: 0.85em;
+    color: #a17fe0;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.country-name-text {
+    font-size: 0.85em;
+    color: #6c757d;
+    font-weight: 500;
+    white-space: nowrap;
+    margin-left: 8px;
+}
+
+.flag-emoji {
+    display: inline-block;
+    line-height: 1;
+    vertical-align: middle;
+}
+
+.flag-image {
+    width: 24px;
+    height: 16px;
+    object-fit: cover;
+    border-radius: 2px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    vertical-align: middle;
 }
 
 .table thead th {
@@ -347,142 +484,276 @@
         display: inline-block;
         margin-right: 5px;
     }
+
+    /* Responsive table adjustments */
+    .table {
+        table-layout: auto;
+    }
+    
+    .table th:nth-child(2),
+    .table td:nth-child(2) {
+        max-width: 150px;
+        min-width: 120px;
+    }
+    
+    .country-flag {
+        flex-direction: column;
+        gap: 4px;
+        font-size: 1em;
+    }
+    
+    .flag-image {
+        width: 20px;
+        height: 14px;
+    }
 }
 
-/* Bulk operations styling */
-.color-circle {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    display: inline-block;
+/* Console button styles */
+.btn-action.console {
+    background-color: transparent;
+    color: #17a2b8;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
     margin-right: 5px;
+    transition: all 0.3s ease;
+    cursor: pointer;
 }
 
-#bulkToolbar .btn-group {
-    margin-right: 0.5rem;
+.btn-action.console:hover {
+    background-color: rgba(23, 162, 184, 0.2);
+    color: #fff;
 }
 
-#bulkToolbar .dropdown-menu {
-    max-height: 200px;
+/* Console modal styles */
+/* Console modal sizing */
+#consoleModal .modal-dialog {
+    max-width: 90%;
+    height: 90vh; /* Use 90% of viewport height */
+    margin: 5vh auto; /* 5% margin top and bottom for equal spacing */
+}
+
+#consoleModal .modal-content {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    height: 100%; /* Fill the modal dialog height */
+    display: flex;
+    flex-direction: column;
+}
+
+#consoleModal .modal-header {
+    background: rgba(23, 162, 184, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0; /* Don't shrink the header */
+}
+
+#consoleModal .modal-body {
+    flex: 1; /* Take up remaining space */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Prevent body overflow */
+    padding: 20px;
+}
+
+#consoleModal .modal-footer {
+    background: rgba(255, 255, 255, 0.05);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0; /* Don't shrink the footer */
+}
+
+/* Console output container - make it fill available space */
+.console-output-container {
+    display: none;
+    background-color: rgba(0, 0, 0, 0.8);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    max-height: 10px;
     overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.4;
 }
 
-/* User selection styling */
-.user-checkbox:checked {
-    background-color: #007bff;
-    border-color: #007bff;
+.console-output {
+    min-height: 150px;
 }
 
-#selectAll:indeterminate {
-    background-color: #6c757d;
-    border-color: #6c757d;
+.console-line {
+    margin-bottom: 8px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Group and tag badges in table */
-.badge {
-    margin-right: 0.25rem;
-    margin-bottom: 0.25rem;
+.console-line:last-child {
+    border-bottom: none;
 }
 
-/* Client Groups and Tags Styling */
-.color-circle {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    display: inline-block;
+.console-prompt {
+    color: #00ff00;
+    font-weight: bold;
     margin-right: 8px;
 }
 
-.group-card, .tag-card {
-    transition: transform 0.2s ease;
-    border-left: 4px solid;
-    border-radius: 8px;
-}
-
-.group-card:hover, .tag-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
-}
-
-.badge-custom {
-    font-size: 0.75em;
-    padding: 0.25em 0.5em;
-}
-
-/* Bulk Operations Toolbar */
-#bulkToolbar {
-    animation: slideIn 0.3s ease-in-out;
-}
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateX(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-#bulkToolbar .btn {
-    margin-left: 0.25rem;
-}
-
-/* User Table Enhancements */
-.user-checkbox {
-    transform: scale(1.1);
-    margin: 0;
-}
-
-.table td {
-    vertical-align: middle;
-}
-
-/* Group and Tag badges in table */
-.table .badge {
-    margin: 1px;
-    font-size: 0.7em;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* Modal styling for dark theme */
-.modal-content.bg-dark {
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.form-floating > .form-control {
+.console-command {
+    color: #ffffff;
     background-color: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.console-output-text {
+    color: #cccccc;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.console-info {
+    color: #17a2b8;
+}
+
+.console-error {
+    color: #dc3545;
+}
+
+.console-warning {
+    color: #ffc107;
+}
+
+/* Command history styles */
+.console-history {
+    margin-top: 20px;
+}
+
+.console-history h6 {
+    margin-bottom: 15px;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Command history - make it fill remaining space */
+.command-history-list {
+    max-height: none; /* Remove height restriction */
+    flex: 1; /* Take up remaining space */
+    overflow-y: auto;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 20px;
+    min-height: 0; /* Allow flex shrinking */
+}
+
+.command-history-item {
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-left: 3px solid #17a2b8;
+}
+
+.command-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 12px;
+    gap: 8px;
+    position: relative; /* For absolute positioning of status */
+}
+
+.command-shell {
+    background-color: #17a2b8;
     color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    margin-right: auto; /* Left anchor */
 }
 
-.form-floating > label {
-    color: rgba(255, 255, 255, 0.7);
+.command-status {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+    flex-shrink: 0;
+    position: absolute; /* Center anchor */
+    left: 50%;
+    transform: translateX(-50%);
 }
 
-.form-select.bg-dark {
-    background-color: rgba(255, 255, 255, 0.1) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+
+
+.status-pending {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.status-executing {
+    background-color: #17a2b8;
     color: white;
 }
 
-.form-select.bg-dark option {
-    background-color: #1a1a1a;
+.status-completed {
+    background-color: #28a745;
     color: white;
 }
 
-/* Checkbox indeterminate styling */
-input[type="checkbox"]:indeterminate {
-    background-color: #007bff;
-    border-color: #007bff;
+.status-error {
+    background-color: #dc3545;
+    color: white;
 }
 
-input[type="checkbox"]:indeterminate::before {
-    content: '−';
-    display: block;
+.command-timestamp {
+    color: #17a2b8;
+    font-size: 11px;
+    font-weight: 500;
+    background-color: rgba(23, 162, 184, 0.1);
+    padding: 2px 6px;
+    border-radius: 8px;
+    border: 1px solid rgba(23, 162, 184, 0.3);
+    flex-shrink: 0;
+    margin-left: auto; /* Right anchor */
+    margin-right: 4px; /* Reduced space before delete button */
+}
+
+.delete-command-btn {
+    padding: 2px 6px;
+    font-size: 10px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.delete-command-btn:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
     color: white;
-    font-size: 14px;
-    text-align: center;
-    line-height: 1;
+    transform: scale(1.05);
+}
+
+.command-text {
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    margin-bottom: 8px;
+    padding: 8px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    border-left: 3px solid #17a2b8;
+}
+
+.command-output {
+    color: #cccccc;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 10px;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    border-left: 3px solid #28a745;
 }

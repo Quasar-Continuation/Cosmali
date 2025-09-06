@@ -1,0 +1,550 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.css" rel="stylesheet">
+<style>
+    .settings-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .settings-section {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    
+    .section-title {
+        color: #a17fe0;
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 20px;
+        text-shadow: 0 0 10px var(--glow-purple);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .script-list {
+        min-height: 200px;
+        border: 2px dashed var(--glass-border);
+        border-radius: 10px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.02);
+        transition: all 0.3s ease;
+    }
+    
+    .script-list:hover {
+        border-color: #a17fe0;
+        background: rgba(161, 127, 224, 0.05);
+    }
+    
+    .script-item {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        cursor: move;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        backdrop-filter: blur(5px);
+    }
+    
+    .script-item:hover {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: #a17fe0;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(161, 127, 224, 0.2);
+    }
+    
+    .script-item.sortable-ghost {
+        opacity: 0.4;
+        background: rgba(161, 127, 224, 0.3);
+    }
+    
+    .script-item.sortable-chosen {
+        background: rgba(161, 127, 224, 0.2);
+        border-color: #a17fe0;
+    }
+    
+    .script-info {
+        flex: 1;
+    }
+    
+    .script-name {
+        color: #fff;
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin-bottom: 5px;
+    }
+    
+    .script-meta {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.9rem;
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .script-badges {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+    }
+    
+    .badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+    
+    .badge-autorun {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+        border: 1px solid #28a745;
+    }
+    
+    .badge-startup {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+        border: 1px solid #ffc107;
+    }
+    
+    .badge-manual {
+        background: rgba(108, 117, 125, 0.2);
+        color: #6c757d;
+        border: 1px solid #6c757d;
+    }
+    
+    .script-order {
+        background: rgba(161, 127, 224, 0.2);
+        color: #a17fe0;
+        border: 1px solid #a17fe0;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.9rem;
+        margin-right: 15px;
+    }
+    
+    .drag-handle {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 1.2rem;
+        cursor: move;
+        padding: 5px;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+    }
+    
+    .drag-handle:hover {
+        color: #a17fe0;
+        background: rgba(161, 127, 224, 0.1);
+    }
+    
+    .controls {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    
+    .btn-settings {
+        background: linear-gradient(135deg, #a17fe0, #8b5cf6);
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(161, 127, 224, 0.3);
+    }
+    
+    .btn-settings:hover {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(161, 127, 224, 0.4);
+    }
+    
+    .btn-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--glass-border);
+        color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+    
+    .empty-state {
+        text-align: center;
+        color: rgba(255, 255, 255, 0.5);
+        padding: 40px 20px;
+        font-style: italic;
+    }
+    
+    .execution-info {
+        background: rgba(161, 127, 224, 0.1);
+        border: 1px solid rgba(161, 127, 224, 0.3);
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .execution-info h5 {
+        color: #a17fe0;
+        margin-bottom: 10px;
+    }
+    
+    .execution-info ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+    
+    .execution-info li {
+        margin-bottom: 5px;
+    }
+    
+    .alert {
+        border-radius: 8px;
+        border: none;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .alert-success {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+        border: 1px solid #28a745;
+    }
+    
+    .alert-error {
+        background: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+        border: 1px solid #dc3545;
+    }
+    
+    @media (max-width: 768px) {
+        .script-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .script-order {
+            margin-right: 0;
+            margin-bottom: 10px;
+        }
+        
+        .controls {
+            flex-direction: column;
+        }
+        
+        .script-meta {
+            flex-direction: column;
+            gap: 5px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <div class="settings-section">
+        <h2 class="section-title">
+            <i class="fas fa-cog"></i>
+            Script Execution Order Settings
+        </h2>
+        
+        <div class="execution-info">
+            <h5><i class="fas fa-info-circle"></i> How Script Execution Order Works</h5>
+            <ul>
+                <li><strong>Startup Scripts:</strong> Run every time an agent connects (highest priority)</li>
+                <li><strong>Autorun Scripts:</strong> Run once per agent when enabled (medium priority)</li>
+                <li><strong>Manual Scripts:</strong> Run only when explicitly executed (lowest priority)</li>
+                <li><strong>Order:</strong> Within each category, scripts execute in the order you set below</li>
+            </ul>
+        </div>
+        
+        <div class="controls">
+            <button type="button" class="btn btn-settings" onclick="saveExecutionOrder()">
+                <i class="fas fa-save"></i> Save Order
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="resetExecutionOrder()">
+                <i class="fas fa-undo"></i> Reset to Default
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="refreshScripts()">
+                <i class="fas fa-sync"></i> Refresh
+            </button>
+        </div>
+        
+        <div id="alert-container"></div>
+    </div>
+    
+    <div class="settings-section">
+        <h3 class="section-title">
+            <i class="fas fa-globe"></i>
+            Global Scripts Execution Order
+        </h3>
+        
+        <div id="global-scripts-list" class="script-list">
+            {% if global_scripts %}
+                {% for script in global_scripts %}
+                <div class="script-item" data-script-id="{{ script.id }}" data-script-type="global">
+                    <div class="script-order">{{ script.execution_order or loop.index }}</div>
+                    <div class="script-info">
+                        <div class="script-name">{{ script.name }}</div>
+                        <div class="script-meta">
+                            <span><i class="fas fa-calendar"></i> Created: {{ script.created_at[:10] }}</span>
+                            <span><i class="fas fa-sort-numeric-up"></i> Order: {{ script.execution_order or loop.index }}</span>
+                        </div>
+                        <div class="script-badges">
+                            {% if script.autorun %}
+                                <span class="badge badge-autorun">Autorun</span>
+                            {% endif %}
+                            {% if script.startup %}
+                                <span class="badge badge-startup">Startup</span>
+                            {% endif %}
+                            {% if not script.autorun and not script.startup %}
+                                <span class="badge badge-manual">Manual Only</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="drag-handle">
+                        <i class="fas fa-grip-vertical"></i>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-code" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+                    No global scripts found
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="settings-section">
+        <h3 class="section-title">
+            <i class="fas fa-user"></i>
+            User Scripts Execution Order
+        </h3>
+        
+        <div id="user-scripts-list" class="script-list">
+            {% if user_scripts %}
+                {% for script in user_scripts %}
+                <div class="script-item" data-script-id="{{ script.id }}" data-script-type="user">
+                    <div class="script-order">{{ script.execution_order or loop.index }}</div>
+                    <div class="script-info">
+                        <div class="script-name">{{ script.name }}</div>
+                        <div class="script-meta">
+                            <span><i class="fas fa-user"></i> User: {{ script.pcname }}</span>
+                            <span><i class="fas fa-calendar"></i> Created: {{ script.created_at[:10] }}</span>
+                            <span><i class="fas fa-sort-numeric-up"></i> Order: {{ script.execution_order or loop.index }}</span>
+                        </div>
+                        <div class="script-badges">
+                            {% if script.autorun %}
+                                <span class="badge badge-autorun">Autorun</span>
+                            {% endif %}
+                            {% if script.startup %}
+                                <span class="badge badge-startup">Startup</span>
+                            {% endif %}
+                            {% if not script.autorun and not script.startup %}
+                                <span class="badge badge-manual">Manual Only</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="drag-handle">
+                        <i class="fas fa-grip-vertical"></i>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-users" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+                    No user scripts found
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+    let globalSortable, userSortable;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeSortable();
+    });
+    
+    function initializeSortable() {
+        // Initialize sortable for global scripts
+        const globalList = document.getElementById('global-scripts-list');
+        if (globalList) {
+            globalSortable = new Sortable(globalList, {
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                handle: '.drag-handle',
+                onEnd: function(evt) {
+                    updateOrderNumbers('global');
+                }
+            });
+        }
+        
+        // Initialize sortable for user scripts
+        const userList = document.getElementById('user-scripts-list');
+        if (userList) {
+            userSortable = new Sortable(userList, {
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                handle: '.drag-handle',
+                onEnd: function(evt) {
+                    updateOrderNumbers('user');
+                }
+            });
+        }
+    }
+    
+    function updateOrderNumbers(type) {
+        const listId = type === 'global' ? 'global-scripts-list' : 'user-scripts-list';
+        const items = document.querySelectorAll(`#${listId} .script-item`);
+        
+        items.forEach((item, index) => {
+            const orderElement = item.querySelector('.script-order');
+            if (orderElement) {
+                orderElement.textContent = index + 1;
+            }
+        });
+    }
+    
+    async function saveExecutionOrder() {
+        const scriptOrders = [];
+        
+        // Collect global script orders
+        const globalItems = document.querySelectorAll('#global-scripts-list .script-item');
+        globalItems.forEach((item, index) => {
+            const scriptId = item.getAttribute('data-script-id');
+            if (scriptId) {
+                scriptOrders.push({
+                    script_id: parseInt(scriptId),
+                    execution_order: index + 1
+                });
+            }
+        });
+        
+        // Collect user script orders
+        const userItems = document.querySelectorAll('#user-scripts-list .script-item');
+        userItems.forEach((item, index) => {
+            const scriptId = item.getAttribute('data-script-id');
+            if (scriptId) {
+                scriptOrders.push({
+                    script_id: parseInt(scriptId),
+                    execution_order: index + 1
+                });
+            }
+        });
+        
+        try {
+            const response = await fetch('/settings/update-execution-order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ script_orders: scriptOrders })
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                showAlert('success', 'Execution order saved successfully!');
+            } else {
+                showAlert('error', result.message || 'Failed to save execution order');
+            }
+        } catch (error) {
+            showAlert('error', 'Error saving execution order: ' + error.message);
+        }
+    }
+    
+    async function resetExecutionOrder() {
+        if (!confirm('Are you sure you want to reset the execution order to default? This will order scripts by creation date.')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/settings/reset-execution-order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                showAlert('success', 'Execution order reset to default!');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showAlert('error', result.message || 'Failed to reset execution order');
+            }
+        } catch (error) {
+            showAlert('error', 'Error resetting execution order: ' + error.message);
+        }
+    }
+    
+    async function refreshScripts() {
+        try {
+            const response = await fetch('/settings/get-script-execution-order');
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                location.reload();
+            } else {
+                showAlert('error', result.message || 'Failed to refresh scripts');
+            }
+        } catch (error) {
+            showAlert('error', 'Error refreshing scripts: ' + error.message);
+        }
+    }
+    
+    function showAlert(type, message) {
+        const alertContainer = document.getElementById('alert-container');
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+        const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+        
+        const alertHtml = `
+            <div class="alert ${alertClass}">
+                <i class="fas ${icon}"></i> ${message}
+            </div>
+        `;
+        
+        alertContainer.innerHTML = alertHtml;
+        
+        // Auto-hide success alerts after 3 seconds
+        if (type === 'success') {
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 3000);
+        }
+    }
+</script>
+{% endblock %}
