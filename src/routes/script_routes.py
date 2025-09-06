@@ -216,10 +216,18 @@ async def global_scripts():
         )
         users = await cursor.fetchall()
 
+        cursor = await db.execute("SELECT * FROM client_groups ORDER BY name")
+        groups = await cursor.fetchall()
+
+        cursor = await db.execute("SELECT * FROM client_tags ORDER BY name")
+        tags = await cursor.fetchall()
+
         return await render_template(
             "scripts/global_scripts.html",
             global_scripts=[dict(s) for s in global_scripts],
             users=[dict(u) for u in users],
+            groups=[dict(g) for g in groups],
+            tags=[dict(t) for t in tags],
             active_page="global_scripts",
         )
 
@@ -280,6 +288,59 @@ async def execute_global_script():
         await db.commit()
 
     return redirect(url_for("script.global_scripts"))
+
+
+@script_bp.route("/api/global-scripts", methods=["GET"])
+@api_rate_limit()
+async def api_get_global_scripts():
+    """API endpoint to get all global scripts for bulk operations"""
+    async with aiosqlite.connect(DATABASE) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            "SELECT id, name, created_at FROM scripts WHERE is_global = 1 ORDER BY name"
+        )
+        scripts = await cursor.fetchall()
+        return jsonify({"scripts": [dict(s) for s in scripts]})
+
+
+@script_bp.route("/api/users-by-group/<int:group_id>", methods=["GET"])
+@api_rate_limit()
+async def api_get_users_by_group(group_id):
+    """Get users in a specific group"""
+    async with aiosqlite.connect(DATABASE) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            """
+            SELECT u.id, u.pcname, u.ip_address, u.is_active
+            FROM user u
+            JOIN client_group_assignments cga ON u.id = cga.client_id
+            WHERE cga.group_id = ?
+            ORDER BY u.is_active DESC, u.pcname ASC
+            """,
+            (group_id,),
+        )
+        users = await cursor.fetchall()
+        return jsonify({"users": [dict(u) for u in users]})
+
+
+@script_bp.route("/api/users-by-tag/<int:tag_id>", methods=["GET"])
+@api_rate_limit()
+async def api_get_users_by_tag(tag_id):
+    """Get users with a specific tag"""
+    async with aiosqlite.connect(DATABASE) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            """
+            SELECT u.id, u.pcname, u.ip_address, u.is_active
+            FROM user u
+            JOIN client_tag_assignments cta ON u.id = cta.client_id
+            WHERE cta.tag_id = ?
+            ORDER BY u.is_active DESC, u.pcname ASC
+            """,
+            (tag_id,),
+        )
+        users = await cursor.fetchall()
+        return jsonify({"users": [dict(u) for u in users]})
 
 
 def register_script_routes(app):

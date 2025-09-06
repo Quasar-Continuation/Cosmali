@@ -29,6 +29,9 @@
             <a class="nav-link {% if active_page == 'map' %}active{% endif %}" href="{{ url_for('map_view') }}">
                 <i class="fas fa-map-marker-alt"></i> <span>Map</span>
             </a>
+            <a class="nav-link {% if active_page == 'groups' %}active{% endif %}" href="{{ url_for('groups.manage_groups') }}">
+                <i class="fas fa-users"></i> <span>Client Groups</span>
+            </a>
             <a class="nav-link {% if active_page == 'global_scripts' %}active{% endif %}" href="{{ url_for('script.global_scripts') }}">
                 <i class="fas fa-code"></i> <span>Global Scripts</span>
             </a>

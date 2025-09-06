@@ -71,6 +71,70 @@ async def init_db():
                 """
             )
 
+            await db.execute(
+                """
+                CREATE TABLE IF NOT EXISTS client_groups (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL UNIQUE,
+                    description TEXT,
+                    color TEXT DEFAULT '#007bff',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+
+            await db.execute(
+                """
+                CREATE TABLE IF NOT EXISTS client_group_assignments (
+                    client_id INTEGER,
+                    group_id INTEGER,
+                    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (client_id) REFERENCES user (id) ON DELETE CASCADE,
+                    FOREIGN KEY (group_id) REFERENCES client_groups (id) ON DELETE CASCADE,
+                    PRIMARY KEY (client_id, group_id)
+                )
+                """
+            )
+
+            await db.execute(
+                """
+                CREATE TABLE IF NOT EXISTS client_tags (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL UNIQUE,
+                    color TEXT DEFAULT '#6c757d'
+                )
+                """
+            )
+
+            await db.execute(
+                """
+                CREATE TABLE IF NOT EXISTS client_tag_assignments (
+                    client_id INTEGER,
+                    tag_id INTEGER,
+                    FOREIGN KEY (client_id) REFERENCES user (id) ON DELETE CASCADE,
+                    FOREIGN KEY (tag_id) REFERENCES client_tags (id) ON DELETE CASCADE,
+                    PRIMARY KEY (client_id, tag_id)
+                )
+                """
+            )
+
+            await db.execute(
+                """
+                CREATE TABLE IF NOT EXISTS script_execution_logs (
+                    id INTEGER PRIMARY KEY,
+                    script_id INTEGER,
+                    client_id INTEGER,
+                    execution_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    execution_end TIMESTAMP,
+                    status TEXT DEFAULT 'pending',
+                    output TEXT,
+                    error_message TEXT,
+                    FOREIGN KEY (script_id) REFERENCES scripts (id) ON DELETE CASCADE,
+                    FOREIGN KEY (client_id) REFERENCES user (id) ON DELETE CASCADE
+                )
+                """
+            )
+
             await db.commit()
             print("Database initialization complete")
     except Exception as e:

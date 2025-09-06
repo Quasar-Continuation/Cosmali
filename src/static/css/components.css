@@ -348,3 +348,141 @@
         margin-right: 5px;
     }
 }
+
+/* Bulk operations styling */
+.color-circle {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+}
+
+#bulkToolbar .btn-group {
+    margin-right: 0.5rem;
+}
+
+#bulkToolbar .dropdown-menu {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* User selection styling */
+.user-checkbox:checked {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+#selectAll:indeterminate {
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+/* Group and tag badges in table */
+.badge {
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Client Groups and Tags Styling */
+.color-circle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+.group-card, .tag-card {
+    transition: transform 0.2s ease;
+    border-left: 4px solid;
+    border-radius: 8px;
+}
+
+.group-card:hover, .tag-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+}
+
+.badge-custom {
+    font-size: 0.75em;
+    padding: 0.25em 0.5em;
+}
+
+/* Bulk Operations Toolbar */
+#bulkToolbar {
+    animation: slideIn 0.3s ease-in-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+#bulkToolbar .btn {
+    margin-left: 0.25rem;
+}
+
+/* User Table Enhancements */
+.user-checkbox {
+    transform: scale(1.1);
+    margin: 0;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Group and Tag badges in table */
+.table .badge {
+    margin: 1px;
+    font-size: 0.7em;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Modal styling for dark theme */
+.modal-content.bg-dark {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.form-floating > .form-control {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.form-floating > label {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.form-select.bg-dark {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.form-select.bg-dark option {
+    background-color: #1a1a1a;
+    color: white;
+}
+
+/* Checkbox indeterminate styling */
+input[type="checkbox"]:indeterminate {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+input[type="checkbox"]:indeterminate::before {
+    content: '−';
+    display: block;
+    color: white;
+    font-size: 14px;
+    text-align: center;
+    line-height: 1;
+}

@@ -1,0 +1,448 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .group-card, .tag-card {
+        transition: transform 0.2s;
+        border-left: 4px solid;
+    }
+    
+    .group-card:hover, .tag-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .color-circle {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+    }
+    
+    .badge-custom {
+        font-size: 0.75em;
+        padding: 0.25em 0.5em;
+    }
+    
+    .form-floating > .form-control {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .form-floating > label {
+        color: rgba(255, 255, 255, 0.7);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="glass p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="welcome-text">Client Organization</h2>
+                    <div>
+                        <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#createGroupModal">
+                            <i class="fas fa-plus"></i> New Group
+                        </button>
+                        <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#createTagModal">
+                            <i class="fas fa-tag"></i> New Tag
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Groups Section -->
+                <div class="row mb-5">
+                    <div class="col-12">
+                        <h4 class="text-info mb-3">
+                            <i class="fas fa-users"></i> Client Groups
+                        </h4>
+                        <div class="row">
+                            {% if groups %}
+                                {% for group in groups %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="glass p-3 group-card" style="border-left-color: {{ group.color }};">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div class="d-flex align-items-center">
+                                                <span class="color-circle" style="background-color: {{ group.color }};"></span>
+                                                <h6 class="mb-0">{{ group.name }}</h6>
+                                            </div>
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="dropdown">
+                                                    <i class="fas fa-ellipsis-v"></i>
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-dark">
+                                                    <li><a class="dropdown-item" href="#" onclick="editGroup({{ group.id }}, '{{ group.name }}', '{{ group.description }}', '{{ group.color }}')">
+                                                        <i class="fas fa-edit"></i> Edit
+                                                    </a></li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteGroup({{ group.id }}, '{{ group.name }}')">
+                                                        <i class="fas fa-trash"></i> Delete
+                                                    </a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        {% if group.description %}
+                                        <p class="text-muted small mb-2">{{ group.description }}</p>
+                                        {% endif %}
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="badge bg-info badge-custom">
+                                                {{ group.client_count }} client{{ 's' if group.client_count != 1 else '' }}
+                                            </span>
+                                            <small class="text-muted">{{ group.created_at[:10] }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i> No groups created yet. Create your first group to organize your clients.
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tags Section -->
+                <div class="row">
+                    <div class="col-12">
+                        <h4 class="text-info mb-3">
+                            <i class="fas fa-tags"></i> Client Tags
+                        </h4>
+                        <div class="row">
+                            {% if tags %}
+                                {% for tag in tags %}
+                                <div class="col-md-6 col-lg-3 mb-3">
+                                    <div class="glass p-3 tag-card" style="border-left-color: {{ tag.color }};">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div class="d-flex align-items-center">
+                                                <span class="color-circle" style="background-color: {{ tag.color }};"></span>
+                                                <h6 class="mb-0">{{ tag.name }}</h6>
+                                            </div>
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="dropdown">
+                                                    <i class="fas fa-ellipsis-v"></i>
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-dark">
+                                                    <li><a class="dropdown-item" href="#" onclick="editTag({{ tag.id }}, '{{ tag.name }}', '{{ tag.color }}')">
+                                                        <i class="fas fa-edit"></i> Edit
+                                                    </a></li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteTag({{ tag.id }}, '{{ tag.name }}')">
+                                                        <i class="fas fa-trash"></i> Delete
+                                                    </a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="badge bg-secondary badge-custom">
+                                                {{ tag.client_count }} client{{ 's' if tag.client_count != 1 else '' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i> No tags created yet. Create tags to categorize your clients.
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Group Modal -->
+<div class="modal fade" id="createGroupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Group</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="createGroupForm">
+                <div class="modal-body">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="groupName" name="name" required>
+                        <label for="groupName">Group Name</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <textarea class="form-control" id="groupDescription" name="description" style="height: 80px"></textarea>
+                        <label for="groupDescription">Description (optional)</label>
+                    </div>
+                    <div class="mb-3">
+                        <label for="groupColor" class="form-label">Color</label>
+                        <input type="color" class="form-control form-control-color" id="groupColor" name="color" value="#007bff">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Create Tag Modal -->
+<div class="modal fade" id="createTagModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Tag</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="createTagForm">
+                <div class="modal-body">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="tagName" name="name" required>
+                        <label for="tagName">Tag Name</label>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tagColor" class="form-label">Color</label>
+                        <input type="color" class="form-control form-control-color" id="tagColor" name="color" value="#6c757d">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-secondary">Create Tag</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Group Modal -->
+<div class="modal fade" id="editGroupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Group</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editGroupForm">
+                <div class="modal-body">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="editGroupName" name="name" required>
+                        <label for="editGroupName">Group Name</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <textarea class="form-control" id="editGroupDescription" name="description" style="height: 80px"></textarea>
+                        <label for="editGroupDescription">Description (optional)</label>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editGroupColor" class="form-label">Color</label>
+                        <input type="color" class="form-control form-control-color" id="editGroupColor" name="color">
+                    </div>
+                    <input type="hidden" id="editGroupId" name="group_id">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Tag Modal -->
+<div class="modal fade" id="editTagModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Tag</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editTagForm">
+                <div class="modal-body">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="editTagName" name="name" required>
+                        <label for="editTagName">Tag Name</label>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editTagColor" class="form-label">Color</label>
+                        <input type="color" class="form-control form-control-color" id="editTagColor" name="color">
+                    </div>
+                    <input type="hidden" id="editTagId" name="tag_id">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-secondary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Create Group Form
+    document.getElementById('createGroupForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        fetch('/groups/create-group', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error creating group', 'danger');
+        });
+    });
+
+    // Create Tag Form
+    document.getElementById('createTagForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        fetch('/groups/create-tag', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error creating tag', 'danger');
+        });
+    });
+
+    // Edit Group Form
+    document.getElementById('editGroupForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        fetch('/groups/update-group', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error updating group', 'danger');
+        });
+    });
+
+    // Edit Tag Form
+    document.getElementById('editTagForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        fetch('/groups/update-tag', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error updating tag', 'danger');
+        });
+    });
+});
+
+function editGroup(id, name, description, color) {
+    document.getElementById('editGroupId').value = id;
+    document.getElementById('editGroupName').value = name;
+    document.getElementById('editGroupDescription').value = description || '';
+    document.getElementById('editGroupColor').value = color;
+    
+    new bootstrap.Modal(document.getElementById('editGroupModal')).show();
+}
+
+function editTag(id, name, color) {
+    document.getElementById('editTagId').value = id;
+    document.getElementById('editTagName').value = name;
+    document.getElementById('editTagColor').value = color;
+    
+    new bootstrap.Modal(document.getElementById('editTagModal')).show();
+}
+
+function deleteGroup(id, name) {
+    if (confirm(`Are you sure you want to delete the group "${name}"? This will remove all client assignments to this group.`)) {
+        fetch(`/groups/delete-group/${id}`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error deleting group', 'danger');
+        });
+    }
+}
+
+function deleteTag(id, name) {
+    if (confirm(`Are you sure you want to delete the tag "${name}"? This will remove the tag from all clients.`)) {
+        fetch(`/groups/delete-tag/${id}`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error deleting tag', 'danger');
+        });
+    }
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.container-fluid').prepend(alertDiv);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+</script>
+{% endblock %}

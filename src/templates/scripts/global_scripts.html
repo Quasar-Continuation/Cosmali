@@ -73,6 +73,31 @@
         background-color: rgba(25, 25, 25, 0.7);
     }
 
+    /* Clickable user items */
+    .user-item-clickable {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .user-item-clickable:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .user-item-clickable:has(.user-checkbox:checked) {
+        background-color: rgba(0, 123, 255, 0.2);
+        border-left: 3px solid #007bff;
+    }
+    
+    .user-label-clickable {
+        cursor: pointer;
+        user-select: none;
+        width: 100%;
+        margin-bottom: 0;
+    }
+
     /* CodeMirror custom stuff since normal it looks weird */
     .CodeMirror {
         height: 300px;
@@ -209,19 +234,41 @@
             </div>
             <form id="executeScriptForm" action="{{ url_for('script.execute_global_script') }}" method="post">
                 <div class="modal-body">
+                    <!-- Filter Options -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="groupFilter" class="form-label">Filter by Group:</label>
+                            <select class="form-select bg-dark text-light" id="groupFilter" onchange="filterUsersByGroup()">
+                                <option value="">All Users</option>
+                                {% for group in groups %}
+                                <option value="{{ group.id }}">{{ group.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="tagFilter" class="form-label">Filter by Tag:</label>
+                            <select class="form-select bg-dark text-light" id="tagFilter" onchange="filterUsersByTag()">
+                                <option value="">All Users</option>
+                                {% for tag in tags %}
+                                <option value="{{ tag.id }}">#{{ tag.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
                     <div class="mb-3">
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="checkbox" id="selectAllUsers" onchange="toggleAllUsers()">
                             <label class="form-check-label" for="selectAllUsers">
-                                <strong>Select All Users</strong>
+                                <strong>Select All Visible Users</strong>
                             </label>
                         </div>
-                        <div class="user-selection p-2 rounded">
+                        <div class="user-selection p-2 rounded" id="userSelectionContainer">
                             {% if users %}
                                 {% for user in users %}
-                                    <div class="form-check mb-1">
+                                    <div class="form-check mb-1 user-item user-item-clickable" data-user-id="{{ user.id }}">
                                         <input class="form-check-input user-checkbox" type="checkbox" name="selected_users" value="{{ user.id }}" id="user-{{ user.id }}">
-                                        <label class="form-check-label" for="user-{{ user.id }}">
+                                        <label class="form-check-label user-label-clickable" for="user-{{ user.id }}">
                                             {{ user.pcname }} ({{ user.ip_address }}) 
                                             <span class="activity-indicator {% if user.is_active %}active{% else %}inactive{% endif %}"></span>
                                         </label>
@@ -323,7 +370,41 @@
         if (scriptIds.length > 0) {
             pollScriptExecutionStatus(scriptIds);
         }
+
+        // Add click handlers for user items in the modal
+        setupUserItemClickHandlers();
     });
+
+    function setupUserItemClickHandlers() {
+        document.querySelectorAll('.user-item-clickable').forEach(item => {
+            item.addEventListener('click', function(e) {
+                // Don't trigger if clicking directly on the checkbox
+                if (e.target.type === 'checkbox') {
+                    return;
+                }
+                
+                const checkbox = this.querySelector('.user-checkbox');
+                if (checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                    
+                    // Update select all state
+                    const allVisible = document.querySelectorAll('.user-item:not(.d-none) .user-checkbox');
+                    const checkedVisible = document.querySelectorAll('.user-item:not(.d-none) .user-checkbox:checked');
+                    const selectAllCheckbox = document.getElementById('selectAllUsers');
+                    
+                    if (checkedVisible.length === 0) {
+                        selectAllCheckbox.indeterminate = false;
+                        selectAllCheckbox.checked = false;
+                    } else if (checkedVisible.length === allVisible.length) {
+                        selectAllCheckbox.indeterminate = false;
+                        selectAllCheckbox.checked = true;
+                    } else {
+                        selectAllCheckbox.indeterminate = true;
+                    }
+                }
+            });
+        });
+    }
 
     function editScript(id, name, content) {
         document.getElementById('editScriptId').value = id;
@@ -352,11 +433,92 @@
     
     function toggleAllUsers() {
         const selectAllCheckbox = document.getElementById('selectAllUsers');
-        const userCheckboxes = document.querySelectorAll('.user-checkbox');
+        const visibleUserCheckboxes = document.querySelectorAll('.user-item:not(.d-none) .user-checkbox');
         
-        userCheckboxes.forEach(checkbox => {
+        visibleUserCheckboxes.forEach(checkbox => {
             checkbox.checked = selectAllCheckbox.checked;
         });
+    }
+    
+    function filterUsersByGroup() {
+        const groupId = document.getElementById('groupFilter').value;
+        const tagFilter = document.getElementById('tagFilter');
+        
+        // Clear tag filter when group filter is used
+        tagFilter.value = '';
+        
+        if (!groupId) {
+            // Show all users
+            showAllUsers();
+            return;
+        }
+        
+        fetch(`/script/api/users-by-group/${groupId}`)
+            .then(response => response.json())
+            .then(data => {
+                updateUserList(data.users);
+            })
+            .catch(error => {
+                console.error('Error fetching users by group:', error);
+                showAllUsers();
+            });
+    }
+    
+    function filterUsersByTag() {
+        const tagId = document.getElementById('tagFilter').value;
+        const groupFilter = document.getElementById('groupFilter');
+        
+        // Clear group filter when tag filter is used
+        groupFilter.value = '';
+        
+        if (!tagId) {
+            // Show all users
+            showAllUsers();
+            return;
+        }
+        
+        fetch(`/script/api/users-by-tag/${tagId}`)
+            .then(response => response.json())
+            .then(data => {
+                updateUserList(data.users);
+            })
+            .catch(error => {
+                console.error('Error fetching users by tag:', error);
+                showAllUsers();
+            });
+    }
+    
+    function updateUserList(users) {
+        // Hide all users first
+        const allUserItems = document.querySelectorAll('.user-item');
+        allUserItems.forEach(item => {
+            item.classList.add('d-none');
+            const checkbox = item.querySelector('.user-checkbox');
+            if (checkbox) checkbox.checked = false;
+        });
+        
+        // Show filtered users
+        users.forEach(user => {
+            const userItem = document.querySelector(`[data-user-id="${user.id}"]`);
+            if (userItem) {
+                userItem.classList.remove('d-none');
+            }
+        });
+        
+        // Reset select all checkbox
+        document.getElementById('selectAllUsers').checked = false;
+    }
+    
+    function showAllUsers() {
+        const allUserItems = document.querySelectorAll('.user-item');
+        allUserItems.forEach(item => {
+            item.classList.remove('d-none');
+        });
+        
+        // Reset checkboxes
+        const allCheckboxes = document.querySelectorAll('.user-checkbox');
+        allCheckboxes.forEach(checkbox => checkbox.checked = false);
+        document.getElementById('selectAllUsers').checked = false;
     }
     
     function pollScriptExecutionStatus(scriptIds) {

