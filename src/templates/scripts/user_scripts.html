@@ -85,9 +85,17 @@
             <div class="glass p-4">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2 class="welcome-text">Scripts for {{ user.pcname }}</h2>
-                    <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
-                    </a>
+                    <div>
+                        <a href="{{ url_for('script.debug_scripts', user_id=user.id) }}" class="btn btn-sm btn-outline-info me-2" target="_blank">
+                            <i class="fas fa-bug me-1"></i> Debug Scripts
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-warning me-2" onclick="openGlobalScriptModal()">
+                            <i class="fas fa-globe me-1"></i> Execute Global Scripts
+                        </button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                        </a>
+                    </div>
                 </div>
                 
                 <!-- User Info Card -->
@@ -161,6 +169,34 @@
                                                     {% if script.executed %}Executed{% else %}Pending{% endif %}
                                                 </span>
                                                 <h5>{{ script.name }}</h5>
+                                                
+                                                <!-- Autorun and Startup Controls -->
+                                                <div class="mb-3">
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="checkbox" id="autorun-{{ script.id }}" 
+                                                               {% if script.autorun %}checked{% endif %} 
+                                                               onchange="toggleAutorun({{ script.id }}, this.checked)">
+                                                        <label class="form-check-label" for="autorun-{{ script.id }}">
+                                                            <i class="fas fa-play-circle text-info"></i> Autorun
+                                                        </label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="checkbox" id="startup-{{ script.id }}" 
+                                                               {% if script.startup %}checked{% endif %} 
+                                                               onchange="toggleStartup({{ script.id }}, this.checked)">
+                                                        <label class="form-check-label" for="startup-{{ script.id }}">
+                                                            <i class="fas fa-power-off text-warning"></i> Startup
+                                                        </label>
+                                                    </div>
+                                                    {% if script.startup %}
+                                                    <div class="form-check form-check-inline">
+                                                        <button type="button" class="btn btn-sm btn-outline-warning" onclick="resetStartupScript({{ script.id }})">
+                                                            <i class="fas fa-redo"></i> Reset
+                                                        </button>
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                                
                                                 <div class="mb-3">
                                                     <pre class="bg-dark p-2 rounded text-light" style="max-height: 150px; overflow-y: auto;">{{ script.content }}</pre>
                                                 </div>
@@ -170,7 +206,7 @@
                                                         <button class="btn btn-sm btn-info" onclick="editScript('{{ script.id }}', '{{ script.name }}', `{{ script.content }}`)">
                                                             <i class="fas fa-edit"></i> Edit
                                                         </button>
-                                                        <form action="{{ url_for('script.execute_script', script_id=script.id) }}" method="post" class="d-inline">
+                                                        <form action="{{ url_for('script.execute_manual_script', script_id=script.id) }}" method="post" class="d-inline">
                                                             <button type="submit" class="btn btn-sm btn-success execute-btn" id="execute-btn-{{ script.id }}">
                                                                 <i class="fas fa-play"></i> Execute
                                                             </button>
@@ -212,13 +248,34 @@
                                                     {% if script.executed %}Executed{% else %}Pending{% endif %}
                                                 </span>
                                                 <h5>{{ script.name }}</h5>
+                                                
+                                                <!-- Autorun and Startup Controls -->
+                                                <div class="mb-3">
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="checkbox" id="autorun-{{ script.id }}" 
+                                                               {% if script.autorun %}checked{% endif %} 
+                                                               onchange="toggleAutorun({{ script.id }}, this.checked)">
+                                                        <label class="form-check-label" for="autorun-{{ script.id }}">
+                                                            <i class="fas fa-play-circle text-info"></i> Autorun
+                                                        </label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="checkbox" id="startup-{{ script.id }}" 
+                                                               {% if script.startup %}checked{% endif %} 
+                                                               onchange="toggleStartup({{ script.id }}, this.checked)">
+                                                        <label class="form-check-label" for="startup-{{ script.id }}">
+                                                            <i class="fas fa-power-off text-warning"></i> Startup
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                
                                                 <div class="mb-3">
                                                     <pre class="bg-dark p-2 rounded text-light" style="max-height: 150px; overflow-y: auto;">{{ script.content }}</pre>
                                                 </div>
                                                 <div class="d-flex justify-content-between align-items-center">
                                                     <small class="text-muted">Created: {{ script.created_at }}</small>
                                                     <div class="script-actions">
-                                                        <form action="{{ url_for('script.execute_script', script_id=script.id, user_id=user.id) }}" method="post" class="d-inline">
+                                                        <form action="{{ url_for('script.execute_manual_script', script_id=script.id, user_id=user.id) }}" method="post" class="d-inline">
                                                             <button type="submit" class="btn btn-sm btn-success execute-btn" id="execute-btn-{{ script.id }}">
                                                                 <i class="fas fa-play"></i> Execute for this user
                                                             </button>
@@ -408,6 +465,70 @@
                     .catch(error => console.error('Error checking script execution:', error));
             });
         }, 5000);
+    }
+    
+    function toggleAutorun(scriptId, enabled) {
+        const formData = new FormData();
+        formData.append('autorun', enabled ? '1' : '0');
+        
+        fetch(`/script/toggle-autorun/${scriptId}`, {
+            method: 'POST',
+            body: formData
+        }).then(response => {
+            if (response.ok) {
+                console.log(`Autorun ${enabled ? 'enabled' : 'disabled'} for script ${scriptId}`);
+            } else {
+                console.error('Failed to toggle autorun');
+                // Revert checkbox state on error
+                document.getElementById(`autorun-${scriptId}`).checked = !enabled;
+            }
+        }).catch(error => {
+            console.error('Error toggling autorun:', error);
+            // Revert checkbox state on error
+            document.getElementById(`autorun-${scriptId}`).checked = !enabled;
+        });
+    }
+    
+    function toggleStartup(scriptId, enabled) {
+        const formData = new FormData();
+        formData.append('startup', enabled ? '1' : '0');
+        
+        fetch(`/script/toggle-startup/${scriptId}`, {
+            method: 'POST',
+            body: formData
+        }).then(response => {
+            if (response.ok) {
+                console.log(`Startup ${enabled ? 'enabled' : 'disabled'} for script ${scriptId}`);
+            } else {
+                console.error('Failed to toggle startup');
+                // Revert checkbox state on error
+                document.getElementById(`startup-${scriptId}`).checked = !enabled;
+            }
+        }).catch(error => {
+            console.error('Error toggling startup:', error);
+            // Revert checkbox state on error
+            document.getElementById(`startup-${scriptId}`).checked = !enabled;
+        });
+    }
+    
+    function resetStartupScript(scriptId) {
+        if (confirm('Are you sure you want to reset this startup script? It will run again on the next agent connection.')) {
+            fetch(`/script/reset-startup/${scriptId}`, {
+                method: 'POST'
+            }).then(response => {
+                if (response.ok) {
+                    console.log(`Startup script ${scriptId} reset successfully`);
+                    // Refresh the page to show updated execution status
+                    location.reload();
+                } else {
+                    console.error('Failed to reset startup script');
+                    alert('Failed to reset startup script');
+                }
+            }).catch(error => {
+                console.error('Error resetting startup script:', error);
+                alert('Error resetting startup script');
+            });
+        }
     }
 </script>
 {% endblock %}

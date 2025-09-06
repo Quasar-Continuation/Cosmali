@@ -30,6 +30,7 @@ async def get_users(offset, limit, sort_by=None, order=None, search_term=None):
                 "is_active",
                 "hwid",
                 "hostname",
+                "elevated_status",
             ]
             if sort_by in allowed_columns and order in ["asc", "desc"]:
                 query += f" ORDER BY {sort_by} {order}"

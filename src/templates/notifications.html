@@ -1,0 +1,595 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .notification-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .notification-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    }
+    
+    .config-form {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .form-control {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        border-radius: 8px;
+    }
+    
+    .form-control:focus {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: #ff6b35;
+        box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.25);
+        color: white;
+    }
+    
+    .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+    }
+    
+    /* Fix dropdown styling for dark theme */
+    .form-select {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        color: white !important;
+    }
+    
+    .form-select:focus {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        border-color: #ff6b35 !important;
+        box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.25) !important;
+        color: white !important;
+    }
+    
+    .form-select option {
+        background-color: #212529 !important;
+        color: white !important;
+    }
+    
+    .form-select option:hover {
+        background-color: #343a40 !important;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(45deg, #ff6b35, #f7931e);
+        border: none;
+        border-radius: 8px;
+        padding: 10px 25px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255, 107, 53, 0.4);
+    }
+    
+    .btn-success {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        border: none;
+        border-radius: 8px;
+        padding: 8px 20px;
+        font-weight: 600;
+    }
+    
+    .btn-danger {
+        background: linear-gradient(45deg, #dc3545, #c82333);
+        border: none;
+        border-radius: 8px;
+        padding: 8px 20px;
+        font-weight: 600;
+    }
+    
+    .btn-warning {
+        background: linear-gradient(45deg, #ffc107, #e0a800);
+        border: none;
+        border-radius: 8px;
+        padding: 8px 20px;
+        font-weight: 600;
+        color: #212529;
+    }
+    
+    .config-item {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 15px;
+        border-left: 4px solid #ff6b35;
+    }
+    
+    .config-item.discord {
+        border-left-color: #7289da;
+    }
+    
+    .config-item.telegram {
+        border-left-color: #0088cc;
+    }
+    
+    .status-badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .status-enabled {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+        border: 1px solid rgba(40, 167, 69, 0.3);
+    }
+    
+    .status-disabled {
+        background: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+        border: 1px solid rgba(220, 53, 69, 0.3);
+    }
+    
+    .type-icon {
+        font-size: 24px;
+        margin-right: 10px;
+    }
+    
+    .alert {
+        border-radius: 10px;
+        border: none;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+    }
+    
+    .alert-success {
+        border-left: 4px solid #28a745;
+        color: #d4edda;
+    }
+    
+    .alert-danger {
+        border-left: 4px solid #dc3545;
+        color: #f8d7da;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="text-white mb-0">
+                    <i class="fas fa-bell me-3"></i>Notifications
+                </h1>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addConfigModal">
+                    <i class="fas fa-plus me-2"></i>Add Configuration
+                </button>
+            </div>
+            
+            <!-- Alert Messages -->
+            <div id="alertContainer"></div>
+            
+            <!-- Configuration Form -->
+            <div class="notification-card">
+                <h4 class="text-white mb-3">
+                    <i class="fas fa-cog me-2"></i>Notification Settings
+                </h4>
+                <p class="text-muted mb-4">
+                    Configure Discord webhooks and Telegram bot notifications to receive alerts when new agents connect to your Cosmali.
+                </p>
+                
+                <!-- Existing Configurations -->
+                {% if configs %}
+                    <h5 class="text-white mb-3">Active Configurations</h5>
+                    {% for config in configs %}
+                        <div class="config-item {{ config.type }}">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <div class="d-flex align-items-center mb-2">
+                                        {% if config.type == 'discord' %}
+                                            <i class="fab fa-discord type-icon text-primary"></i>
+                                        {% else %}
+                                            <i class="fab fa-telegram type-icon text-info"></i>
+                                        {% endif %}
+                                        <h6 class="text-white mb-0">{{ config.type.title() }} Configuration</h6>
+                                    </div>
+                                    
+                                    {% if config.type == 'discord' %}
+                                        <p class="text-muted mb-1">
+                                            <strong>Webhook URL:</strong> 
+                                            <span class="text-white">{{ config.webhook_url[:50] }}{% if config.webhook_url|length > 50 %}...{% endif %}</span>
+                                        </p>
+                                    {% else %}
+                                        <p class="text-muted mb-1">
+                                            <strong>Bot Token:</strong> 
+                                            <span class="text-white">{{ config.bot_token[:20] }}{% if config.bot_token|length > 20 %}...{% endif %}</span>
+                                        </p>
+                                        <p class="text-muted mb-1">
+                                            <strong>Chat ID:</strong> 
+                                            <span class="text-white">{{ config.chat_id }}</span>
+                                        </p>
+                                    {% endif %}
+                                    
+                                    <p class="text-muted mb-0">
+                                        <strong>Created:</strong> 
+                                        <span class="text-white">{{ config.created_at }}</span>
+                                    </p>
+                                </div>
+                                
+                                <div class="col-md-4 text-end">
+                                    <div class="mb-2">
+                                        <span class="status-badge {% if config.is_enabled %}status-enabled{% else %}status-disabled{% endif %}">
+                                            {% if config.is_enabled %}Enabled{% else %}Disabled{% endif %}
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-warning btn-sm" onclick="testNotification({{ config.id }})">
+                                            <i class="fas fa-paper-plane me-1"></i>Test
+                                        </button>
+                                        <button class="btn btn-success btn-sm" onclick="editConfig({{ config.id }})">
+                                            <i class="fas fa-edit me-1"></i>Edit
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" onclick="deleteConfig({{ config.id }})">
+                                            <i class="fas fa-trash me-1"></i>Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No notification configurations found</h5>
+                        <p class="text-muted">Add your first configuration to start receiving agent join notifications.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Configuration Modal -->
+<div class="modal fade" id="addConfigModal" tabindex="-1" aria-labelledby="addConfigModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="background: rgba(33, 37, 41, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2);">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-white" id="addConfigModalLabel">
+                    <i class="fas fa-plus me-2"></i>Add Notification Configuration
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="notificationForm">
+                    <div class="mb-3">
+                        <label for="notificationType" class="form-label text-white">Notification Type</label>
+                        <select class="form-select form-control" id="notificationType" required>
+                            <option value="">Select notification type</option>
+                            <option value="discord">Discord Webhook</option>
+                            <option value="telegram">Telegram Bot</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Discord Configuration -->
+                    <div id="discordConfig" style="display: none;">
+                        <div class="mb-3">
+                            <label for="webhookUrl" class="form-label text-white">Discord Webhook URL</label>
+                            <input type="url" class="form-control" id="webhookUrl" placeholder="https://discord.com/api/webhooks/...">
+                            <div class="form-text text-muted">
+                                Create a webhook in your Discord server settings and paste the URL here.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Telegram Configuration -->
+                    <div id="telegramConfig" style="display: none;">
+                        <div class="mb-3">
+                            <label for="botToken" class="form-label text-white">Telegram Bot Token</label>
+                            <input type="text" class="form-control" id="botToken" placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz">
+                            <div class="form-text text-muted">
+                                Get this from @BotFather when you create a new bot.
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="chatId" class="form-label text-white">Chat ID</label>
+                            <input type="text" class="form-control" id="chatId" placeholder="123456789 or @username">
+                            <div class="form-text text-muted">
+                                Your user ID or username where notifications should be sent.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="isEnabled" checked>
+                            <label class="form-check-label text-white" for="isEnabled">
+                                Enable this configuration
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveConfiguration()">Save Configuration</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Configuration Modal -->
+<div class="modal fade" id="editConfigModal" tabindex="-1" aria-labelledby="editConfigModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="background: rgba(33, 37, 41, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2);">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-white" id="editConfigModalLabel">
+                    <i class="fas fa-edit me-2"></i>Edit Notification Configuration
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editNotificationForm">
+                    <input type="hidden" id="editConfigId">
+                    <div class="mb-3">
+                        <label for="editNotificationType" class="form-label text-white">Notification Type</label>
+                        <input type="text" class="form-control" id="editNotificationType" readonly>
+                    </div>
+                    
+                    <!-- Discord Configuration -->
+                    <div id="editDiscordConfig" style="display: none;">
+                        <div class="mb-3">
+                            <label for="editWebhookUrl" class="form-label text-white">Discord Webhook URL</label>
+                            <input type="url" class="form-control" id="editWebhookUrl" placeholder="https://discord.com/api/webhooks/...">
+                        </div>
+                    </div>
+                    
+                    <!-- Telegram Configuration -->
+                    <div id="editTelegramConfig" style="display: none;">
+                        <div class="mb-3">
+                            <label for="editBotToken" class="form-label text-white">Telegram Bot Token</label>
+                            <input type="text" class="form-control" id="editBotToken" placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editChatId" class="form-label text-white">Chat ID</label>
+                            <input type="text" class="form-control" id="editChatId" placeholder="123456789 or @username">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editIsEnabled">
+                            <label class="form-check-label text-white" for="editIsEnabled">
+                                Enable this configuration
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateConfiguration()">Update Configuration</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentConfigs = {{ configs|tojson|safe }};
+
+// Show/hide configuration fields based on type
+document.getElementById('notificationType').addEventListener('change', function() {
+    const discordConfig = document.getElementById('discordConfig');
+    const telegramConfig = document.getElementById('telegramConfig');
+    
+    if (this.value === 'discord') {
+        discordConfig.style.display = 'block';
+        telegramConfig.style.display = 'none';
+    } else if (this.value === 'telegram') {
+        discordConfig.style.display = 'none';
+        telegramConfig.style.display = 'block';
+    } else {
+        discordConfig.style.display = 'none';
+        telegramConfig.style.display = 'none';
+    }
+});
+
+// Save new configuration
+async function saveConfiguration() {
+    const type = document.getElementById('notificationType').value;
+    const webhookUrl = document.getElementById('webhookUrl').value;
+    const botToken = document.getElementById('botToken').value;
+    const chatId = document.getElementById('chatId').value;
+    const isEnabled = document.getElementById('isEnabled').checked;
+    
+    if (!type) {
+        showAlert('Please select a notification type', 'danger');
+        return;
+    }
+    
+    if (type === 'discord' && !webhookUrl) {
+        showAlert('Discord webhook URL is required', 'danger');
+        return;
+    }
+    
+    if (type === 'telegram' && (!botToken || !chatId)) {
+        showAlert('Telegram bot token and chat ID are required', 'danger');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/notifications/config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                type: type,
+                webhook_url: webhookUrl,
+                bot_token: botToken,
+                chat_id: chatId,
+                is_enabled: isEnabled
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            showAlert(result.message, 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            showAlert(result.message, 'danger');
+        }
+    } catch (error) {
+        showAlert('Error saving configuration: ' + error.message, 'danger');
+    }
+}
+
+// Edit configuration
+function editConfig(configId) {
+    const config = currentConfigs.find(c => c.id === configId);
+    if (!config) return;
+    
+    document.getElementById('editConfigId').value = config.id;
+    document.getElementById('editNotificationType').value = config.type;
+    document.getElementById('editWebhookUrl').value = config.webhook_url || '';
+    document.getElementById('editBotToken').value = config.bot_token || '';
+    document.getElementById('editChatId').value = config.chat_id || '';
+    document.getElementById('editIsEnabled').checked = config.is_enabled === 1;
+    
+    // Show/hide appropriate fields
+    const editDiscordConfig = document.getElementById('editDiscordConfig');
+    const editTelegramConfig = document.getElementById('editTelegramConfig');
+    
+    if (config.type === 'discord') {
+        editDiscordConfig.style.display = 'block';
+        editTelegramConfig.style.display = 'none';
+    } else if (config.type === 'telegram') {
+        editDiscordConfig.style.display = 'none';
+        editTelegramConfig.style.display = 'block';
+    }
+    
+    new bootstrap.Modal(document.getElementById('editConfigModal')).show();
+}
+
+// Update configuration
+async function updateConfiguration() {
+    const configId = document.getElementById('editConfigId').value;
+    const webhookUrl = document.getElementById('editWebhookUrl').value;
+    const botToken = document.getElementById('editBotToken').value;
+    const chatId = document.getElementById('editChatId').value;
+    const isEnabled = document.getElementById('editIsEnabled').checked;
+    
+    try {
+        const response = await fetch(`/api/notifications/config/${configId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                webhook_url: webhookUrl,
+                bot_token: botToken,
+                chat_id: chatId,
+                is_enabled: isEnabled
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            showAlert(result.message, 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            showAlert(result.message, 'danger');
+        }
+    } catch (error) {
+        showAlert('Error updating configuration: ' + error.message, 'danger');
+    }
+}
+
+// Delete configuration
+async function deleteConfig(configId) {
+    if (!confirm('Are you sure you want to delete this notification configuration?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/notifications/config/${configId}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            showAlert(result.message, 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            showAlert(result.message, 'danger');
+        }
+    } catch (error) {
+        showAlert('Error deleting configuration: ' + error.message, 'danger');
+    }
+}
+
+// Test notification
+async function testNotification(configId) {
+    try {
+        const response = await fetch(`/api/notifications/test/${configId}`, {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            showAlert(result.message, 'success');
+        } else {
+            showAlert(result.message, 'danger');
+        }
+    } catch (error) {
+        showAlert('Error testing notification: ' + error.message, 'danger');
+    }
+}
+
+// Show alert message
+function showAlert(message, type) {
+    const alertContainer = document.getElementById('alertContainer');
+    const alertId = 'alert-' + Date.now();
+    
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" id="${alertId}" role="alert">
+            ${message}
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    
+    alertContainer.innerHTML = alertHtml;
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        const alert = document.getElementById(alertId);
+        if (alert) {
+            alert.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

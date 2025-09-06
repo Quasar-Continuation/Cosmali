@@ -1,0 +1,406 @@
+<!-- Console Modal -->
+<div class="modal fade" id="consoleModal" tabindex="-1" aria-labelledby="consoleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h5 class="modal-title" id="consoleModalLabel">
+                    <i class="fas fa-terminal"></i> Console - <span id="consolePcName"></span>
+                </h5>
+                <button type="button" class="btn-close" onclick="closeConsole()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-8">
+                        <div class="input-group">
+                            <select class="form-select" id="shellType" style="max-width: 150px;">
+                                <option value="powershell">PowerShell</option>
+                                <option value="cmd">CMD</option>
+                            </select>
+                            <input type="text" class="form-control" id="consoleCommand" placeholder="Enter command..." onkeypress="handleConsoleKeyPress(event)">
+                            <button class="btn btn-primary" onclick="executeConsoleCommand()">
+                                <i class="fas fa-play"></i> Execute
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button class="btn btn-outline-danger btn-sm" onclick="clearConsole()">
+                            <i class="fas fa-trash"></i> Clear All
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="console-output-container">
+                    <div id="consoleOutput" class="console-output"></div>
+                </div>
+                
+                <div class="console-history mt-3">
+                    <h6><i class="fas fa-history"></i> Command History</h6>
+                    <div id="commandHistory" class="command-history-list"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeConsole()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentConsoleUserId = null;
+    let consoleWebSocket = null;
+    let commandHistory = [];
+    let autoRefreshInterval = null;
+    let lastCommandId = null;
+
+    function openConsole(userId, pcName) {
+        currentConsoleUserId = userId;
+        document.getElementById('consolePcName').textContent = pcName;
+        document.getElementById('consoleModal').classList.add('show');
+        document.getElementById('consoleModal').style.display = 'block';
+        document.body.classList.add('modal-open');
+        
+        // Initialize console
+        initializeConsole();
+        
+        // Load command history
+        loadCommandHistory(userId);
+        
+        // Connect WebSocket
+        connectConsoleWebSocket(userId);
+        
+        // Start auto-refresh
+        startAutoRefresh();
+    }
+
+    function initializeConsole() {
+        const output = document.getElementById('consoleOutput');
+        output.innerHTML = '<div class="console-line"><span class="console-prompt">></span> Console connected. Ready for commands.</div>';
+    }
+
+    function handleConsoleKeyPress(event) {
+        if (event.key === 'Enter') {
+            executeConsoleCommand();
+        }
+    }
+
+    function executeConsoleCommand() {
+        const command = document.getElementById('consoleCommand').value.trim();
+        const shellType = document.getElementById('shellType').value;
+        
+        if (!command) return;
+        
+        // Add command to output
+        addConsoleLine(`<span class="console-prompt">${shellType.toUpperCase()}></span> ${command}`, 'command');
+        
+        // Execute command
+        fetch('/api/console/execute', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                user_id: currentConsoleUserId,
+                command: command,
+                shell_type: shellType
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                addConsoleLine(`Command sent for execution (ID: ${data.command_id})`, 'info');
+                lastCommandId = data.command_id;
+                
+                // Clear input
+                document.getElementById('consoleCommand').value = '';
+                // Start aggressive auto-refresh for this command
+                startAggressiveRefresh();
+                
+                // Immediately refresh to show the new command in history
+                setTimeout(() => {
+                    loadCommandHistory(currentConsoleUserId);
+                }, 100);
+            } else {
+                addConsoleLine(`Error: ${data.message}`, 'error');
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            addConsoleLine(`Error: ${error.message}`, 'error');
+        });
+    }
+
+    function addConsoleLine(content, type = 'output') {
+        const output = document.getElementById('consoleOutput');
+        const line = document.createElement('div');
+        line.className = `console-line console-${type}`;
+        line.innerHTML = content;
+        output.appendChild(line);
+        output.scrollTop = output.scrollHeight;
+    }
+
+    function clearConsole() {
+        if (!currentConsoleUserId) {
+            addConsoleLine('<span class="console-prompt">></span> No user selected.', 'error');
+            return;
+        }
+        
+        // Clear console output (even though it's hidden)
+        document.getElementById('consoleOutput').innerHTML = '';
+        addConsoleLine('<span class="console-prompt">></span> Console cleared.', 'info');
+        
+        // Clear command history display
+        document.getElementById('commandHistory').innerHTML = '<div class="text-muted">No commands executed yet.</div>';
+        
+        // Delete commands from database
+        fetch(`/api/console/clear/${currentConsoleUserId}`, {
+            method: 'DELETE',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                addConsoleLine('<span class="console-prompt">></span> Command history cleared from database.', 'info');
+            } else {
+                addConsoleLine(`<span class="console-prompt">></span> Error clearing database: ${data.message}`, 'error');
+            }
+        })
+        .catch(error => {
+            addConsoleLine(`<span class="console-prompt">></span> Error clearing database: ${error.message}`, 'error');
+        });
+        
+        // Reset last command ID
+        lastCommandId = null;
+        
+        // Stop any aggressive refresh and resume normal refresh
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            startAutoRefresh();
+        }
+    }
+
+    function refreshConsole() {
+        if (currentConsoleUserId) {
+            loadCommandHistory(currentConsoleUserId);
+            addConsoleLine('<span class="console-prompt">></span> Console refreshed.', 'info');
+        }
+    }
+
+    function loadCommandHistory(userId) {
+        fetch(`/api/console/commands/${userId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                displayCommandHistory(data.commands);
+                
+                // Check if our last command has completed
+                if (lastCommandId && data.commands.length > 0) {
+                    const lastCommand = data.commands.find(cmd => cmd.id == lastCommandId);
+                    if (lastCommand) {
+                        if (lastCommand.status === 'completed' || lastCommand.status === 'error') {
+                            // Command completed, stop aggressive refresh and show completion message
+                            stopAggressiveRefresh();
+                            if (lastCommand.status === 'completed') {
+                                addConsoleLine(`Command ${lastCommandId} completed successfully!`, 'info');
+                            } else {
+                                addConsoleLine(`Command ${lastCommandId} failed!`, 'error');
+                            }
+                            lastCommandId = null;
+                        } else if (lastCommand.status === 'executing') {
+                            // Command is being executed by agent
+                            addConsoleLine(`Command ${lastCommandId} is being executed by agent...`, 'info');
+                        }
+                    }
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error loading command history:', error);
+        });
+    }
+
+    function displayCommandHistory(commands) {
+        const historyContainer = document.getElementById('commandHistory');
+        historyContainer.innerHTML = '';
+        
+        if (commands.length === 0) {
+            historyContainer.innerHTML = '<div class="text-muted">No commands executed yet.</div>';
+            return;
+        }
+        
+        commands.forEach(cmd => {
+            const cmdDiv = document.createElement('div');
+            cmdDiv.className = 'command-history-item';
+            cmdDiv.setAttribute('data-command-id', cmd.id); // Add data attribute for deletion
+            
+            // Format timestamp
+            const timestamp = new Date(cmd.created_at);
+            const formattedTime = timestamp.toLocaleString('en-US', {
+                month: 'short',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            
+            // Format status display text
+            let statusText = cmd.status;
+            if (cmd.status === 'pending') {
+                statusText = 'Pending';
+            } else if (cmd.status === 'executing') {
+                statusText = 'Executing';
+            } else if (cmd.status === 'completed') {
+                statusText = 'Completed';
+            } else if (cmd.status === 'error') {
+                statusText = 'Error';
+            }
+            
+            cmdDiv.innerHTML = `
+                <div class="command-header">
+                    <span class="command-shell">${cmd.shell_type.toUpperCase()}</span>
+                    <span class="command-status status-${cmd.status}">${statusText}</span>
+                    <span class="command-timestamp">${formattedTime}</span>
+                    <button class="btn btn-sm btn-outline-danger delete-command-btn" onclick="deleteCommand(${cmd.id})" title="Delete this command">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="command-text">${cmd.command}</div>
+                ${cmd.output ? `<div class="command-output">${cmd.output}</div>` : ''}
+            `;
+            historyContainer.appendChild(cmdDiv);
+        });
+    }
+
+    function startAutoRefresh() {
+        // Regular refresh every 5 seconds
+        autoRefreshInterval = setInterval(() => {
+            if (currentConsoleUserId) {
+                loadCommandHistory(currentConsoleUserId);
+            }
+        }, 5000);
+    }
+
+    function startAggressiveRefresh() {
+        // Stop regular refresh
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+        }
+        
+        // Aggressive refresh every 1 second while waiting for command completion
+        autoRefreshInterval = setInterval(() => {
+            if (currentConsoleUserId) {
+                loadCommandHistory(currentConsoleUserId);
+            }
+        }, 1000);
+    }
+
+    function stopAggressiveRefresh() {
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+        }
+        // Resume regular refresh
+        startAutoRefresh();
+    }
+
+    function connectConsoleWebSocket(userId) {
+        // Close existing connection
+        if (consoleWebSocket) {
+            consoleWebSocket.close();
+        }
+        
+        // Create new WebSocket connection
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/console/${userId}`;
+        
+        consoleWebSocket = new WebSocket(wsUrl);
+        
+        consoleWebSocket.onopen = function() {
+            addConsoleLine('<span class="console-prompt">></span> WebSocket connected.', 'info');
+        };
+        
+        consoleWebSocket.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'pong') {
+                    // Keep connection alive
+                    return;
+                }
+                addConsoleLine(`<span class="console-prompt">></span> ${data.message}`, 'info');
+            } catch (e) {
+                console.error('Error parsing WebSocket message:', e);
+            }
+        };
+        
+        consoleWebSocket.onclose = function() {
+            addConsoleLine('<span class="console-prompt">></span> WebSocket disconnected.', 'warning');
+        };
+        
+        consoleWebSocket.onerror = function(error) {
+            addConsoleLine(`<span class="console-prompt">></span> WebSocket error: ${error}`, 'warning');
+        };
+        
+        // Keep connection alive with ping
+        setInterval(() => {
+            if (consoleWebSocket && consoleWebSocket.readyState === WebSocket.OPEN) {
+                consoleWebSocket.send(JSON.stringify({type: 'ping'}));
+            }
+        }, 30000);
+    }
+
+    function closeConsole() {
+        document.getElementById('consoleModal').classList.remove('show');
+        document.getElementById('consoleModal').style.display = 'none';
+        document.body.classList.remove('modal-open');
+        if (consoleWebSocket) {
+            consoleWebSocket.close();
+            consoleWebSocket = null;
+        }
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+        }
+        currentConsoleUserId = null;
+        lastCommandId = null;
+    }
+
+    function deleteCommand(commandId) {
+        if (!currentConsoleUserId) {
+            return;
+        }
+        
+        // Delete specific command from database
+        fetch(`/api/console/command/${commandId}`, {
+            method: 'DELETE',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Remove the command from display
+                const commandElement = document.querySelector(`[data-command-id="${commandId}"]`);
+                if (commandElement) {
+                    commandElement.remove();
+                }
+                // Refresh the display to ensure consistency
+                loadCommandHistory(currentConsoleUserId);
+            } else {
+                addConsoleLine(`<span class="console-prompt">></span> Error deleting command: ${data.message}`, 'error');
+            }
+        })
+        .catch(error => {
+            addConsoleLine(`<span class="console-prompt">></span> Error deleting command: ${error.message}`, 'error');
+        });
+    }
+
+    // Close WebSocket when modal is closed
+    document.getElementById('consoleModal').addEventListener('hidden.bs.modal', function () {
+        if (consoleWebSocket) {
+            consoleWebSocket.close();
+            consoleWebSocket = null;
+        }
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+        }
+        currentConsoleUserId = null;
+        lastCommandId = null;
+    });
+</script>

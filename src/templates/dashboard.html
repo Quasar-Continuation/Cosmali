@@ -1,38 +1,116 @@
 {% extends "base.html" %}
 
-{% block extra_css %}
-<style>
-    .user-row-clickable {
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-    }
-    
-    .user-row-clickable:hover {
-        background-color: rgba(255, 255, 255, 0.05) !important;
-    }
-    
-    .user-row-clickable:active {
-        background-color: rgba(255, 255, 255, 0.1) !important;
-    }
-    
-    .user-checkbox {
-        pointer-events: auto;
-        cursor: pointer;
-    }
-    
-    /* Visual feedback for selected rows */
-    .user-row-clickable:has(.user-checkbox:checked) {
-        background-color: rgba(0, 123, 255, 0.1) !important;
-        border-left: 3px solid #007bff;
-    }
-</style>
-{% endblock %}
-
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 <script>
+    // Country code to full name mapping
+    const countryNames = {
+        'DE': 'Germany', 'US': 'United States', 'GB': 'United Kingdom', 'FR': 'France', 
+        'CA': 'Canada', 'AU': 'Australia', 'JP': 'Japan', 'CN': 'China', 'KR': 'South Korea', 
+        'IN': 'India', 'BR': 'Brazil', 'RU': 'Russia', 'IT': 'Italy', 'ES': 'Spain', 
+        'NL': 'Netherlands', 'SE': 'Sweden', 'NO': 'Norway', 'DK': 'Denmark', 'FI': 'Finland', 
+        'CH': 'Switzerland', 'AT': 'Austria', 'BE': 'Belgium', 'PL': 'Poland', 'CZ': 'Czech Republic', 
+        'HU': 'Hungary', 'RO': 'Romania', 'BG': 'Bulgaria', 'HR': 'Croatia', 'SI': 'Slovenia', 
+        'SK': 'Slovakia', 'LT': 'Lithuania', 'LV': 'Latvia', 'EE': 'Estonia', 'IE': 'Ireland', 
+        'PT': 'Portugal', 'GR': 'Greece', 'CY': 'Cyprus', 'MT': 'Malta', 'LU': 'Luxembourg', 
+        'IS': 'Iceland', 'TR': 'Turkey', 'UA': 'Ukraine', 'BY': 'Belarus', 'MD': 'Moldova', 
+        'GE': 'Georgia', 'AM': 'Armenia', 'AZ': 'Azerbaijan', 'KZ': 'Kazakhstan', 'UZ': 'Uzbekistan', 
+        'KG': 'Kyrgyzstan', 'TJ': 'Tajikistan', 'TM': 'Turkmenistan', 'AF': 'Afghanistan', 
+        'PK': 'Pakistan', 'BD': 'Bangladesh', 'LK': 'Sri Lanka', 'NP': 'Nepal', 'BT': 'Bhutan', 
+        'MV': 'Maldives', 'ID': 'Indonesia', 'MY': 'Malaysia', 'SG': 'Singapore', 'TH': 'Thailand', 
+        'VN': 'Vietnam', 'PH': 'Philippines', 'MM': 'Myanmar', 'LA': 'Laos', 'KH': 'Cambodia', 
+        'BN': 'Brunei', 'TL': 'East Timor', 'PG': 'Papua New Guinea', 'FJ': 'Fiji', 'NC': 'New Caledonia', 
+        'VU': 'Vanuatu', 'SB': 'Solomon Islands', 'KI': 'Kiribati', 'TV': 'Tuvalu', 'NR': 'Nauru', 
+        'PW': 'Palau', 'MH': 'Marshall Islands', 'FM': 'Micronesia', 'WS': 'Samoa', 'TO': 'Tonga', 
+        'CK': 'Cook Islands', 'NU': 'Niue', 'TK': 'Tokelau', 'NZ': 'New Zealand', 'MX': 'Mexico', 
+        'GT': 'Guatemala', 'BZ': 'Belize', 'SV': 'El Salvador', 'HN': 'Honduras', 'NI': 'Nicaragua', 
+        'CR': 'Costa Rica', 'PA': 'Panama', 'CO': 'Colombia', 'VE': 'Venezuela', 'GY': 'Guyana', 
+        'SR': 'Suriname', 'GF': 'French Guiana', 'EC': 'Ecuador', 'PE': 'Peru', 'BO': 'Bolivia', 
+        'CL': 'Chile', 'AR': 'Argentina', 'PY': 'Paraguay', 'UY': 'Uruguay', 'ZA': 'South Africa', 
+        'NA': 'Namibia', 'BW': 'Botswana', 'ZW': 'Zimbabwe', 'ZM': 'Zambia', 'MW': 'Malawi', 
+        'MZ': 'Mozambique', 'TZ': 'Tanzania', 'KE': 'Kenya', 'UG': 'Uganda', 'RW': 'Rwanda', 
+        'BI': 'Burundi', 'CD': 'DR Congo', 'CG': 'Republic of Congo', 'GA': 'Gabon', 'GQ': 'Equatorial Guinea', 
+        'CM': 'Cameroon', 'CF': 'Central African Republic', 'TD': 'Chad', 'NE': 'Niger', 'NG': 'Nigeria', 
+        'BJ': 'Benin', 'TG': 'Togo', 'GH': 'Ghana', 'CI': 'Ivory Coast', 'LR': 'Liberia', 'SL': 'Sierra Leone', 
+        'GN': 'Guinea', 'GW': 'Guinea-Bissau', 'SN': 'Senegal', 'GM': 'Gambia', 'CV': 'Cape Verde', 
+        'MR': 'Mauritania', 'ML': 'Mali', 'BF': 'Burkina Faso', 'DZ': 'Algeria', 'TN': 'Tunisia', 
+        'LY': 'Libya', 'EG': 'Egypt', 'SD': 'Sudan', 'SS': 'South Sudan', 'ET': 'Ethiopia', 
+        'ER': 'Eritrea', 'DJ': 'Djibouti', 'SO': 'Somalia', 'KM': 'Comoros', 'YT': 'Mayotte', 
+        'RE': 'Réunion', 'MU': 'Mauritius', 'SC': 'Seychelles', 'MG': 'Madagascar', 'MA': 'Morocco'
+    };
+
+    // Update all country flags on page load
+    function updateCountryFlags() {
+        // Prevent multiple calls
+        if (window.flagsUpdated) return;
+        
+        const countryElements = document.querySelectorAll('.country-flag');
+        
+        let updatedCount = 0;
+        countryElements.forEach(element => {
+            const countryCode = element.getAttribute('data-country');
+            const flagImage = element.querySelector('.flag-image');
+            const countryNameSpan = element.querySelector('.country-name-text');
+            
+            if (flagImage && countryCode) {
+                // Set the PNG flag image source
+                flagImage.src = `/static/images/flags/${countryCode.toLowerCase()}.png`;
+                flagImage.alt = `${countryCode} flag`;
+                
+                // Update the country name
+                if (countryNameSpan) {
+                    const fullName = countryNames[countryCode] || countryCode;
+                    countryNameSpan.textContent = `(${fullName})`;
+                }
+                
+                updatedCount++;
+            }
+        });
+        
+        if (updatedCount > 0) {
+            window.flagsUpdated = true;
+        }
+    }
+
+    // Update flags when DOM is loaded
+    document.addEventListener('DOMContentLoaded', updateCountryFlags);
+    
+    // Also try to update immediately in case DOM is already loaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateCountryFlags);
+    } else {
+        // DOM is already loaded, update immediately
+        updateCountryFlags();
+    }
+    
+    // Single fallback after a short delay
+    setTimeout(updateCountryFlags, 100);
+    
+    // Also try when window is fully loaded
+    window.addEventListener('load', updateCountryFlags);
+    
     // handle user deletion in the UI
     function deleteUser(userId, pcname) {
+        // Show confirmation modal first
+        const confirmModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+        const confirmText = document.getElementById('deleteConfirmText');
+        const confirmUserId = document.getElementById('deleteConfirmUserId');
+        
+        confirmText.textContent = `Are you sure you want to remove agent "${pcname}"?`;
+        confirmUserId.value = userId;
+        confirmModal.show();
+    }
+    
+    // Function to actually perform the deletion after confirmation
+    function confirmDeleteUser() {
+        const userId = document.getElementById('deleteConfirmUserId').value;
+        const pcname = document.getElementById('deleteConfirmText').textContent.match(/"([^"]+)"/)?.[1] || 'Unknown';
+        
+        // Hide the modal
+        const confirmModal = bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal'));
+        confirmModal.hide();
+        
+        // Perform the actual deletion
         fetch(`/delete_user/${userId}`, {
             method: 'POST',
         })
@@ -84,233 +162,6 @@
             }, 3000);
         });
     }
-
-    // Bulk operations functionality
-    document.addEventListener('DOMContentLoaded', function() {
-        const selectAllCheckbox = document.getElementById('selectAll');
-        const userCheckboxes = document.querySelectorAll('.user-checkbox');
-        const bulkToolbar = document.getElementById('bulkToolbar');
-
-        // Handle select all checkbox
-        selectAllCheckbox.addEventListener('change', function() {
-            userCheckboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-            });
-            updateBulkToolbar();
-        });
-
-        // Handle individual checkboxes
-        userCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                updateBulkToolbar();
-                updateSelectAllState();
-            });
-        });
-
-        function updateBulkToolbar() {
-            const selectedCount = document.querySelectorAll('.user-checkbox:checked').length;
-            if (selectedCount > 0) {
-                bulkToolbar.classList.remove('d-none');
-            } else {
-                bulkToolbar.classList.add('d-none');
-            }
-        }
-
-        function updateSelectAllState() {
-            const checkedBoxes = document.querySelectorAll('.user-checkbox:checked').length;
-            const totalBoxes = userCheckboxes.length;
-            
-            if (checkedBoxes === 0) {
-                selectAllCheckbox.indeterminate = false;
-                selectAllCheckbox.checked = false;
-            } else if (checkedBoxes === totalBoxes) {
-                selectAllCheckbox.indeterminate = false;
-                selectAllCheckbox.checked = true;
-            } else {
-                selectAllCheckbox.indeterminate = true;
-            }
-        }
-
-        // Load scripts for bulk execution
-        fetch('/script/api/global-scripts')
-            .then(response => response.json())
-            .then(data => {
-                const select = document.getElementById('bulkScriptSelect');
-                data.scripts.forEach(script => {
-                    const option = document.createElement('option');
-                    option.value = script.id;
-                    option.textContent = script.name;
-                    select.appendChild(option);
-                });
-            })
-            .catch(error => console.error('Error loading scripts:', error));
-
-        // Add click handlers for user rows
-        document.querySelectorAll('.user-row-clickable').forEach(row => {
-            row.addEventListener('click', function(e) {
-                // Don't trigger if clicking on checkbox column or actions column
-                if (e.target.closest('td').hasAttribute('onclick')) {
-                    return;
-                }
-                
-                const userId = this.getAttribute('data-user-id');
-                const checkbox = this.querySelector('.user-checkbox');
-                
-                if (checkbox) {
-                    checkbox.checked = !checkbox.checked;
-                    updateBulkToolbar();
-                    updateSelectAllState();
-                }
-            });
-        });
-    });
-
-    function getSelectedUserIds() {
-        return Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
-    }
-
-    function bulkAssignGroup(groupId, groupName) {
-        const userIds = getSelectedUserIds();
-        if (userIds.length === 0) {
-            showAlert('No users selected', 'warning');
-            return;
-        }
-
-        if (confirm(`Assign ${userIds.length} users to group "${groupName}"?`)) {
-            const formData = new FormData();
-            formData.append('group_id', groupId);
-            userIds.forEach(id => formData.append('user_ids', id));
-
-            fetch('/bulk-assign-group', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    showAlert(data.message, 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showAlert(data.message, 'danger');
-                }
-            })
-            .catch(error => showAlert('Error assigning group', 'danger'));
-        }
-    }
-
-    function bulkAssignTag(tagId, tagName) {
-        const userIds = getSelectedUserIds();
-        if (userIds.length === 0) {
-            showAlert('No users selected', 'warning');
-            return;
-        }
-
-        if (confirm(`Tag ${userIds.length} users with "${tagName}"?`)) {
-            const formData = new FormData();
-            formData.append('tag_id', tagId);
-            userIds.forEach(id => formData.append('user_ids', id));
-
-            fetch('/bulk-assign-tag', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    showAlert(data.message, 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showAlert(data.message, 'danger');
-                }
-            })
-            .catch(error => showAlert('Error assigning tag', 'danger'));
-        }
-    }
-
-    function bulkDeleteUsers() {
-        const userIds = getSelectedUserIds();
-        if (userIds.length === 0) {
-            showAlert('No users selected', 'warning');
-            return;
-        }
-
-        if (confirm(`Are you sure you want to delete ${userIds.length} selected users? This action cannot be undone.`)) {
-            const formData = new FormData();
-            userIds.forEach(id => formData.append('user_ids', id));
-
-            fetch('/bulk-delete', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    showAlert(data.message, 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showAlert(data.message, 'danger');
-                }
-            })
-            .catch(error => showAlert('Error deleting users', 'danger'));
-        }
-    }
-
-    function showBulkScriptModal() {
-        const userIds = getSelectedUserIds();
-        if (userIds.length === 0) {
-            showAlert('No users selected', 'warning');
-            return;
-        }
-
-        document.getElementById('selectedUsersCount').textContent = userIds.length;
-        new bootstrap.Modal(document.getElementById('bulkScriptModal')).show();
-    }
-
-    // Handle bulk script execution form
-    document.getElementById('bulkScriptForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const scriptId = document.getElementById('bulkScriptSelect').value;
-        const userIds = getSelectedUserIds();
-        
-        if (!scriptId || userIds.length === 0) {
-            showAlert('Please select a script and users', 'warning');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('script_id', scriptId);
-        userIds.forEach(id => formData.append('user_ids', id));
-
-        fetch('/bulk-execute-script', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                showAlert(data.message, 'success');
-                bootstrap.Modal.getInstance(document.getElementById('bulkScriptModal')).hide();
-            } else {
-                showAlert(data.message, 'danger');
-            }
-        })
-        .catch(error => showAlert('Error executing script', 'danger'));
-    });
-
-    function showAlert(message, type) {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-        alertDiv.innerHTML = `
-            <strong>${type === 'success' ? 'Success!' : type === 'warning' ? 'Warning!' : 'Error!'}</strong> ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        document.querySelector('.table-container').before(alertDiv);
-        
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 5000);
-    }
 </script>
 {% endblock %}
 
@@ -327,57 +178,17 @@
             <div class="glass p-4 d-flex flex-column h-100">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2 class="welcome-text">Users</h2>
-                    <div class="d-flex align-items-center">
-                        <form id="userSearchForm" class="d-flex search-container me-3">
-                            <input type="text" id="userSearchInput" name="search" class="form-control form-control-sm search-input" placeholder="Search users..." value="{{ search_term or '' }}">
-                            <button type="submit" class="btn btn-sm search-btn">
-                                <i class="fas fa-search"></i> Search
-                            </button>
-                        </form>
-                        <!-- Bulk Operations Toolbar -->
-                        <div id="bulkToolbar" class="d-none">
-                            <div class="btn-group" role="group">
-                                <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-users"></i> Group Actions
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-dark">
-                                    {% for group in groups %}
-                                    <li><a class="dropdown-item" href="#" onclick="bulkAssignGroup({{ group.id }}, '{{ group.name }}')">
-                                        <span class="color-circle" style="background-color: {{ group.color }}; width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 5px;"></span>
-                                        {{ group.name }}
-                                    </a></li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                            <div class="btn-group" role="group">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-tag"></i> Tag Actions
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-dark">
-                                    {% for tag in tags %}
-                                    <li><a class="dropdown-item" href="#" onclick="bulkAssignTag({{ tag.id }}, '{{ tag.name }}')">
-                                        <span class="color-circle" style="background-color: {{ tag.color }}; width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 5px;"></span>
-                                        {{ tag.name }}
-                                    </a></li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                            <button type="button" class="btn btn-sm btn-outline-success" onclick="showBulkScriptModal()">
-                                <i class="fas fa-play"></i> Execute Script
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="bulkDeleteUsers()">
-                                <i class="fas fa-trash"></i> Delete Selected
-                            </button>
-                        </div>
-                    </div>
+                    <form id="userSearchForm" class="d-flex search-container">
+                        <input type="text" id="userSearchInput" name="search" class="form-control form-control-sm search-input" placeholder="Search users..." value="{{ search_term or '' }}">
+                        <button type="submit" class="btn btn-sm search-btn">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </form>
                 </div>
                 <div class="table-responsive flex-grow-1 table-container">
                     <table class="table table-borderless">
                         <thead>
                             <tr>
-                                <th>
-                                    <input type="checkbox" id="selectAll" class="form-check-input">
-                                </th>
                                 <th class="sortable" onclick="sortTable('id')">
                                     ID
                                     {% if current_sort == 'id' %}
@@ -386,9 +197,25 @@
                                         </span>
                                     {% endif %}
                                 </th>
+                                <th class="sortable" onclick="sortTable('hwid')">
+                                    HWID
+                                    {% if current_sort == 'hwid' %}
+                                        <span class="sort-icon">
+                                            {% if current_order == 'asc' %}↑{% else %}↓{% endif %}
+                                        </span>
+                                    {% endif %}
+                                </th>
                                 <th class="sortable" onclick="sortTable('pcname')">
                                     PC Name
                                     {% if current_sort == 'pcname' %}
+                                        <span class="sort-icon">
+                                            {% if current_order == 'asc' %}↑{% else %}↓{% endif %}
+                                        </span>
+                                    {% endif %}
+                                </th>
+                                <th class="sortable" onclick="sortTable('elevated_status')">
+                                    Elevated Status
+                                    {% if current_sort == 'elevated_status' %}
                                         <span class="sort-icon">
                                             {% if current_order == 'asc' %}↑{% else %}↓{% endif %}
                                         </span>
@@ -410,7 +237,6 @@
                                         </span>
                                     {% endif %}
                                 </th>
-                                <th>Groups & Tags</th>
                                 <th class="sortable" onclick="sortTable('is_active')">
                                     Activity
                                     {% if current_sort == 'is_active' %}
@@ -427,33 +253,46 @@
                                         </span>
                                     {% endif %}
                                 </th>
+                                <th class="sortable" onclick="sortTable('first_ping')">
+                                    First Seen
+                                    {% if current_sort == 'first_ping' %}
+                                        <span class="sort-icon">
+                                            {% if current_order == 'asc' %}↑{% else %}↓{% endif %}
+                                        </span>
+                                    {% endif %}
+                                </th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for user in users %}
-                            <tr id="user-row-{{ user.id }}" class="user-row-clickable" data-user-id="{{ user.id }}">
-                                <td onclick="event.stopPropagation();">
-                                    <input type="checkbox" class="form-check-input user-checkbox" value="{{ user.id }}">
-                                </td>
+                            <tr id="user-row-{{ user.id }}">
                                 <td><span class="badge bg-dark">{{ user.id }}</span></td>
+                                <td><span class="text-secondary">{{ user.hwid }}</span></td>
                                 <td><span class="text-secondary">{{ user.pcname }}</span></td>
+                                <td>
+                                    {% if user.elevated_status == 'System' %}
+                                        <span class="badge bg-danger elevated-status-badge">System</span>
+                                    {% elif user.elevated_status == 'Admin' %}
+                                        <span class="badge bg-warning elevated-status-badge">Admin</span>
+                                    {% elif user.elevated_status == 'PowerUser' %}
+                                        <span class="badge bg-info elevated-status-badge">PowerUser</span>
+                                    {% elif user.elevated_status == 'Elevated' %}
+                                        <span class="badge bg-primary elevated-status-badge">Elevated</span>
+                                    {% elif user.elevated_status == 'User' %}
+                                        <span class="badge bg-secondary elevated-status-badge">User</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark elevated-status-badge">{{ user.elevated_status or 'Unknown' }}</span>
+                                    {% endif %}
+                                </td>
                                 <td><span class="text-info">{{ user.ip_address }}</span></td>
                                 <td class="country-name">
-                                    <span class="text-secondary">{{ user.country }}</span>
-                                </td>
-                                <td>
-                                    <div class="d-flex flex-wrap gap-1">
-                                        {% for group in user.groups %}
-                                        <span class="badge" style="background-color: {{ group.color }}; font-size: 0.7em;">
-                                            {{ group.name }}
-                                        </span>
-                                        {% endfor %}
-                                        {% for tag in user.tags %}
-                                        <span class="badge" style="background-color: {{ tag.color }}; font-size: 0.7em;">
-                                            #{{ tag.name }}
-                                        </span>
-                                        {% endfor %}
+                                    <div class="country-flag" data-country="{{ user.country }}">
+                                        <img src="{{ url_for('static', filename='images/flags/' + user.country.lower() + '.png') }}" 
+                                             alt="{{ user.country }} flag" 
+                                             class="flag-image"
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                                        <span class="country-name-text">({{ user.country }})</span>
                                     </div>
                                 </td>
                                 <td>
@@ -467,11 +306,17 @@
                                 <td title="{{ user.last_ping }}">
                                     <span class="text-warning">{{ user.last_ping_formatted }}</span>
                                 </td>
-                                <td onclick="event.stopPropagation();">
+                                <td title="{{ user.first_ping }}">
+                                    <span class="text-secondary">{{ user.first_ping_formatted }}</span>
+                                </td>
+                                <td>
+                                    <button class="btn-action console" title="Open Console" onclick="openConsole('{{ user.id }}', '{{ user.pcname }}')">
+                                        <i class="fas fa-terminal"></i>
+                                    </button>
                                     <a href="{{ url_for('script.user_scripts', user_id=user.id) }}" class="btn-action edit" title="Edit User Scripts">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <button class="btn-action delete" title="Delete User" onclick="deleteUser({{ user.id }}, '{{ user.pcname }}')">
+                                    <button class="btn-action delete" title="Delete User" onclick="deleteUser('{{ user.id }}', '{{ user.pcname }} {{ user.hwid }}')">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </td>
@@ -491,33 +336,40 @@
 <!-- WebSocket Connection -->
 {% include 'components/websocket_connection.html' %}
 
-<!-- Bulk Script Execution Modal -->
-<div class="modal fade" id="bulkScriptModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content bg-dark">
+<!-- Console Modal -->
+{% include 'scripts/console_modal.html' %}
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Execute Script on Selected Clients</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title" id="deleteConfirmModalLabel">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                    Confirm Agent Removal
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="bulkScriptForm">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="bulkScriptSelect" class="form-label">Select Script</label>
-                        <select class="form-select bg-dark text-light" id="bulkScriptSelect" required>
-                            <option value="">Choose a script...</option>
-                            <!-- Scripts will be loaded via JavaScript -->
-                        </select>
-                    </div>
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> 
-                        <span id="selectedUsersCount">0</span> users selected for script execution.
-                    </div>
+            <div class="modal-body">
+                <p class="mb-0" id="deleteConfirmText">
+                    Are you sure you want to remove this agent?
+                </p>
+                <input type="hidden" id="deleteConfirmUserId" value="">
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone. The agent will be permanently removed from the system.
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">Execute Script</button>
-                </div>
-            </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteUser()">
+                    <i class="fas fa-trash me-2"></i>
+                    Remove Agent
+                </button>
+            </div>
         </div>
     </div>
 </div>
